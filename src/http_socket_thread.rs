@@ -1,0 +1,3 @@
+strust HttpSocketThread {
+    
+}
