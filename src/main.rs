@@ -81,10 +81,10 @@ fn main() {
     let mut sock_arr = vec![];
     for i in 0..arg.sock_cnt {
         children.push(thread::spawn(move || {
-            let sock = HttpSocketThread::new();
+            let mut sock = HttpSocketThread::new();
             sock.initiate();
-            sock_arr.push(sock);
         }));
+        sock_arr.push(sock);
     }
 
     for child in children {
