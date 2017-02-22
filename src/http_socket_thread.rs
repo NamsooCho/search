@@ -62,10 +62,28 @@ impl HttpSocketThread {
             if (!check_redir(url))
                 break;
 
-            let addr: IpAddr = match url.to_socket_addrs().next() {
-                Some(x) => x.ip(),
-                None => IpAddr::V4(Ipv4Addr::new(0.0.0.0)),
-            }
+            let addr: SocketAddr = match url.to_socket_addrs().next() {
+                Some(x) => x,
+                None => SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 80),
+            };
+            let mut tcp_s = TcpStream::connect (addr).unwrap();
+            let send_data = make_http_header ()
         }
+    }
+
+    fn make_http_header (url: &str, host: &str, cookie: &str) => str {
+        let mut hdr: str = "GET ";
+        if (!url.is_empty())
+            hdr += url;
+        else
+            hdr += "/";
+        hdr += " HTTP/1.1\r\n";
+        hdr += "Host: " + host + "\r\n";
+        hdr += "User-Agent: TinyCrawler\r\n";
+        hdr += "Accept: */*\r\n";
+        hdr += "Accept-Language: ko\r\n";
+        hdr += "Cookie: " + cookie + "\r\n";
+        hdr += "\r\n";
+        hdr
     }
 }
