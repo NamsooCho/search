@@ -1,9 +1,12 @@
 extern crate getopts;
 use getopts::Options;
 use std::env;
+use std::thread;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+
+mod http_socket_thread;
 
 struct Args {
     q_limit: u32,

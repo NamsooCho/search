@@ -44,4 +44,73 @@ impl Url {
             url += "#" + frag_;
         url
     }
+
+    fn swap (other: Url) {
+        std::mem::swap (&mut self, &mut other);
+    }
+
+    fn get_element (url: &mut String, element: &String, c: char) {
+        let pos = match url.find(c) {
+            Some(p) => p,
+            None => 0,
+        };
+
+        if (0 != pos) {
+            *element = url[pos+1..];
+            url.truncate(pos);
+        }
+    }
+
+    fn parse (url: String, url_composer: Url) => bool {
+        if (url.is_empty())
+            return false;
+
+        get_element (&mut url, url_composer.frag_, '#');
+        get_element (&mut url, url_composer.query_, '?');
+        get_element (&mut url, url_composer.param_, ';');
+
+        let pos = url.find (':') match {
+            Some (p) => p,
+            None => 0,
+        };
+
+        if (0 != pos) {
+            url_composer.scheme_ = url[..pos].to_lowercase();
+            url = url[pos+1..];
+        }
+
+        let pos = url.find("//") match {
+            Some (p) => p,
+            None => 9999,
+        };
+
+        if (0 == pos) {
+            url = url[2..];
+            let pos = url.find ('/') match {
+                Some (p) => p,
+                None => url.len(),
+            };
+            url_composer.net_loc_ = url[..pos];
+            if (pos < url.len())
+                url = url[pos+1..];
+            else
+                url.erase();
+            let pos = url_composer.net_loc_.find (':') match {
+                Some (p) => p,
+                None => 0,
+            };
+            if (0 != pos) {
+                url_composer.port_ = url_composer.net_loc_[pos+1..].parse().unwrap();
+                url_composer.net_loc_ = url_composer.net_loc_[..pos];
+            }
+        }
+
+        url_composer.path_ = url;
+
+        url_composer.net_loc_ = url_composer.net_loc_.to_lowercase ();
+        if (url_composer.path_.is_empty())
+            url_composer.path_ = "/";
+
+        true
+    }
 }
