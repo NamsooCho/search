@@ -22,26 +22,33 @@ struct Url {
 }
 
 impl Url {
-    fn get_url (range: Range) => String {
+    fn get_url (range: Range) -> String {
         let mut url = String::new("");
-        if (range & Range::SCHEME && !scheme_.is_empty())
+        if (range & Range::SCHEME && !scheme_.is_empty()) {
             url = scheme_ + ":";
-        if (range & Range::NETLOC && !net_loc_.is_empty())
+        }
+        if (range & Range::NETLOC && !net_loc_.is_empty()) {
             url += "//" + net_loc_;
-        if (range & Range::NETLOC && port_ != DEFAULT_PORT)
+        }
+        if (range & Range::NETLOC && port_ != DEFAULT_PORT) {
             url += ":" + port_.to_string();
+        }
         if (range & Range::PATH) {
             url += path_;
             let path_tmp = path_.clone();
-            if (path_.len() > 1 && path_tmp.pop() == '/' && path_.find('.') != None)
+            if (path_.len() > 1 && path_tmp.pop() == '/' && path_.find('.') != None) {
                 url.truncate (url.rfind ('/').unwrap());
+            }
         }
-        if (range & Range::PARAM && !param_.is_empty())
+        if (range & Range::PARAM && !param_.is_empty()) {
             url += ";" + param_;
-        if (range & Range::QUERY && !query_.is_empty())
+        }
+        if (range & Range::QUERY && !query_.is_empty()) {
             url += "?" + query_;
-        if (range & Range::FRAGMENT && !frag_.is_empty())
+        }
+        if (range & Range::FRAGMENT && !frag_.is_empty()) {
             url += "#" + frag_;
+        }
         url
     }
 
@@ -61,15 +68,16 @@ impl Url {
         }
     }
 
-    fn parse (url: String, url_composer: Url) => bool {
-        if (url.is_empty())
+    fn parse (url: String, url_composer: Url) -> bool {
+        if (url.is_empty()) {
             return false;
+        }
 
         get_element (&mut url, url_composer.frag_, '#');
         get_element (&mut url, url_composer.query_, '?');
         get_element (&mut url, url_composer.param_, ';');
 
-        let pos = url.find (':') match {
+        let pos =  match url.find(':') {
             Some (p) => p,
             None => 0,
         };
@@ -79,23 +87,25 @@ impl Url {
             url = url[pos+1..];
         }
 
-        let pos = url.find("//") match {
+        let pos = match url.find("//") {
             Some (p) => p,
             None => 9999,
         };
 
         if (0 == pos) {
             url = url[2..];
-            let pos = url.find ('/') match {
+            let pos = match url.find ('/') {
                 Some (p) => p,
                 None => url.len(),
             };
             url_composer.net_loc_ = url[..pos];
-            if (pos < url.len())
+            if (pos < url.len()) {
                 url = url[pos+1..];
-            else
+            }
+            else {
                 url.erase();
-            let pos = url_composer.net_loc_.find (':') match {
+            }
+            let pos = match url_composer.net_loc_.find (':') {
                 Some (p) => p,
                 None => 0,
             };
@@ -108,8 +118,9 @@ impl Url {
         url_composer.path_ = url;
 
         url_composer.net_loc_ = url_composer.net_loc_.to_lowercase ();
-        if (url_composer.path_.is_empty())
+        if (url_composer.path_.is_empty()) {
             url_composer.path_ = "/";
+        }
 
         true
     }

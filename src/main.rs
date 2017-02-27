@@ -7,6 +7,8 @@ extern crate log;
 extern crate env_logger;
 
 mod http_socket_thread;
+mod sync_q;
+mod url_parser;
 
 struct Args {
     q_limit: u32,

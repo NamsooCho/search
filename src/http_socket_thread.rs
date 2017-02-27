@@ -1,4 +1,8 @@
 use std::path::Path;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
+
+use sync_q::SyncQ;
+use url_parser::Url;
 
 struct DNS {
 
@@ -16,22 +20,58 @@ impl DNS {
 }
 
 impl HttpSocketThread {
-    fn initiate () {
-        self.continue_ = true;
-        self.redir_history = Vec::new();
-        thread_function ();
+    fn make_http_header (url: &str, host: &str, cookie: &str) -> String {
+        let mut hdr: String = "GET ";
+        if (!url.is_empty()) {
+            hdr += url;
+        }
+        else {
+            hdr += "/";
+        }
+        hdr += " HTTP/1.1\r\n";
+        hdr += "Host: " + host + "\r\n";
+        hdr += "User-Agent: TinyCrawler\r\n";
+        hdr += "Accept: */*\r\n";
+        hdr += "Accept-Language: ko\r\n";
+        hdr += "Cookie: " + cookie + "\r\n";
+        hdr += "\r\n";
+        hdr
     }
 
-    fn thread_function () {
-        let html_parser: HtmlParse = HtmlParser::new();
+    fn request (&self, url: &Url) -> bool {
+        if (url.url.is_empty()) {
+            return false;
+        }
 
-        while (continue_) {
-            if (url_q.full ()) {
+        self.redir_history.clear ();
+        let err_: String = "".to_string();
+        let done: bool = false;
+        let ret: bool = false;
+
+        while (!done && err_.is_empty()) {
+            //if (!check_redir(url)) {
+            //    break;
+            //}
+
+            let addr: SocketAddr = match url.to_socket_addrs().next() {
+                Some(x) => x,
+                None => SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 80),
+            };
+            let mut tcp_s = TcpStream::connect (addr).unwrap();
+            let send_data = self.make_http_header ("a", "b", "c");
+        }
+    }
+
+    fn thread_function (&mut self) {
+        //let html_parser: HtmlParse = HtmlParser::new();
+
+        while (self.continue_) {
+            if (self.url_q.full ()) {
                 break;
             }
             
-            let url: Url = url_q.get_next_url ();
-            if (request (&url)) {
+            let url: Url = self.url_q.get_next_url ();
+            if (self.request (&url)) {
                 self.output_ = self.output_.join(html_cnt.to_string()) + ".html".to_string();
                 html_cnt = html_cnt + 1;
                 let out_path = Path::new(self.output_);
@@ -50,45 +90,9 @@ impl HttpSocketThread {
         }
     }
 
-    fn request (url: &Url) -> bool {
-        if (url.url.is_empty()) {
-            return false;
-        }
-
-        redir_history.clear ();
-        let err_: String = "".to_string();
-        let done: bool = false;
-        let ret: bool = false;
-
-        while (!done && err_.is_empty()) {
-            if (!check_redir(url)) {
-                break;
-            }
-
-            let addr: SocketAddr = match url.to_socket_addrs().next() {
-                Some(x) => x,
-                None => SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 80),
-            };
-            let mut tcp_s = TcpStream::connect (addr).unwrap();
-            let send_data = make_http_header ();
-        }
-    }
-
-    fn make_http_header (url: &str, host: &str, cookie: &str) -> str {
-        let mut hdr: str = "GET ";
-        if (!url.is_empty()) {
-            hdr += url;
-        }
-        else {
-            hdr += "/";
-        }
-        hdr += " HTTP/1.1\r\n";
-        hdr += "Host: " + host + "\r\n";
-        hdr += "User-Agent: TinyCrawler\r\n";
-        hdr += "Accept: */*\r\n";
-        hdr += "Accept-Language: ko\r\n";
-        hdr += "Cookie: " + cookie + "\r\n";
-        hdr += "\r\n";
-        hdr
+    fn initiate (&self) {
+        self.continue_ = true;
+        self.redir_history = Vec::new();
+        thread_function ();
     }
 }
