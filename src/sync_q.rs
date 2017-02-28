@@ -1,9 +1,20 @@
+use url_parser::Url;
 
-struct SyncQ {
+pub struct SyncQ {
+    url: Url,
 }
 
 impl SyncQ {
-    fn full (&self) -> bool {
+    pub fn new () -> SyncQ {
+        let mut q = SyncQ{url: Url::new()};
+        q
+    }
+
+    pub fn full (&self) -> bool {
         true
+    }
+
+    pub fn get_next_url (&self) -> Url {
+        self.url
     }
 }

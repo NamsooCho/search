@@ -10,6 +10,8 @@ mod http_socket_thread;
 mod sync_q;
 mod url_parser;
 
+use http_socket_thread::HttpSocketThread;
+
 struct Args {
     q_limit: u32,
     seed: String,
@@ -59,7 +61,7 @@ fn main() {
     };
 
     let out_dir = match matches.opt_str("o") {
-        Some(x) => &x + "/result.txt".to_string(),
+        Some(x) => x + "/result.txt",
         None => "./result.txt".to_string(),
     };
 
@@ -88,8 +90,8 @@ fn main() {
         children.push(thread::spawn(move || {
             let mut sock = HttpSocketThread::new();
             sock.initiate();
+            sock_arr.push(sock);
         }));
-        sock_arr.push(sock);
     }
 
     for child in children {
