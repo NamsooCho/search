@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::fs::File;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
+use std::net::TcpStream;
 use std::error::Error;
 
 use sync_q::SyncQ;
@@ -10,6 +10,7 @@ struct DNS {
 
 }
 
+#[derive(Debug, Clone)]
 pub struct HttpSocketThread {
     continue_: bool,
     url_q: SyncQ,
@@ -78,7 +79,7 @@ impl HttpSocketThread {
             
             let url: Url = self.url_q.get_next_url ();
             if self.request (&url) {
-                self.output_ = self.output_ + &html_cnt.to_string() + ".html";
+                self.output_ = self.output_.clone() + &html_cnt.to_string() + ".html";
                 html_cnt = html_cnt + 1;
                 let out_path = Path::new(&self.output_);
                 let display = out_path.display();

@@ -1,5 +1,6 @@
 use std::mem;
 use std::ops::BitAnd;
+use std::clone::Clone;
 
 const DEFAULT_PORT: u16 = 80;
 
@@ -13,6 +14,7 @@ enum Range {
     ALL = 0xFF,
 }
 
+#[derive(Debug, Clone)]
 pub struct Url {
     scheme_: String,
     pub net_loc_: String,
@@ -25,22 +27,21 @@ pub struct Url {
 
 impl Url {
     pub fn new () -> Url {
-        let url = Url{scheme_: "".to_string(),
+        Url{scheme_: "".to_string(),
             net_loc_: "".to_string(),
             path_: "".to_string(),
             param_: "".to_string(),
             query_: "".to_string(),
             frag_: "".to_string(),
             port_: 80
-            };
-        url
+            }
     }
 
     fn get_url (&self, range_: Range) -> String {
         let range: u8 = range_ as u8;
         let mut url = String::new();
         if range & Range::SCHEME as u8 == Range::SCHEME as u8 && !self.scheme_.is_empty() {
-            url = self.scheme_ + ":";
+            url = self.scheme_.clone() + ":";
         }
         if range & Range::NETLOC as u8 == Range::NETLOC as u8 && !self.net_loc_.is_empty() {
             url = url + "//" + &self.net_loc_;
@@ -50,9 +51,10 @@ impl Url {
         }
         if range & Range::PATH as u8 == Range::PATH as u8 {
             url = url + &self.path_;
-            let path_tmp = self.path_.clone();
+            let mut path_tmp = self.path_.clone();
             if self.path_.len() > 1 && path_tmp.pop().unwrap() == '/' && self.path_.find('.') != None {
-                url.truncate (url.rfind ('/').unwrap());
+                let pos: usize = url.find('/').unwrap();
+                url.truncate (pos);
             }
         }
         if range & Range::PARAM as u8 == Range::PARAM as u8 && !self.param_.is_empty() {
@@ -73,8 +75,8 @@ impl Url {
         url_str.is_empty()
     }
 
-    fn swap<'a> (&'a self, other: &'a Url) {
-        mem::swap (&mut self, &mut other);
+    fn swap<'a> (&'a mut self, other: &'a mut Url) {
+        mem::swap (self, other);
     }
 
     fn get_element (&self, url: &mut String, element: &mut String, c: char) {
@@ -89,14 +91,14 @@ impl Url {
         }
     }
 
-    fn parse (&self, url: String, url_composer: Url) -> bool {
+    fn parse (&self, url: &mut String, url_composer: &mut Url) -> bool {
         if url.is_empty() {
             return false;
         }
 
-        self.get_element (&mut url, &mut url_composer.frag_, '#');
-        self.get_element (&mut url, &mut url_composer.query_, '?');
-        self.get_element (&mut url, &mut url_composer.param_, ';');
+        self.get_element (url, &mut url_composer.frag_, '#');
+        self.get_element (url, &mut url_composer.query_, '?');
+        self.get_element (url, &mut url_composer.param_, ';');
 
         let pos =  match url.find(':') {
             Some (p) => p,
@@ -105,7 +107,7 @@ impl Url {
 
         if 0 != pos {
             url_composer.scheme_ = url[..pos].to_lowercase();
-            url = url[pos+1..].to_string();
+            url.drain(..pos);
         }
 
         let pos = match url.find("//") {
@@ -114,17 +116,17 @@ impl Url {
         };
 
         if 0 == pos {
-            url = url[2..].to_string();
+            url.drain(..2);
             let pos = match url.find ('/') {
                 Some (p) => p,
                 None => url.len(),
             };
             url_composer.net_loc_ = url[..pos].to_string();
             if pos < url.len() {
-                url = url[pos+1..].to_string();
+                url.drain(..pos);
             }
             else {
-                url = "".to_string();
+                url.drain(..);
             }
             let pos = match url_composer.net_loc_.find (':') {
                 Some (p) => p,
@@ -136,7 +138,7 @@ impl Url {
             }
         }
 
-        url_composer.path_ = url;
+        url_composer.path_ = url.clone();
 
         url_composer.net_loc_ = url_composer.net_loc_.to_lowercase ();
         if url_composer.path_.is_empty() {

@@ -1,20 +1,23 @@
 use url_parser::Url;
 
+#[derive(Debug, Clone)]
 pub struct SyncQ {
-    url: Url,
+    url: Vec<Url>,
+    index: usize,
 }
 
 impl SyncQ {
     pub fn new () -> SyncQ {
-        let mut q = SyncQ{url: Url::new()};
-        q
+        SyncQ{url: Vec::new(), index: 0}
     }
 
     pub fn full (&self) -> bool {
         true
     }
 
-    pub fn get_next_url (&self) -> Url {
-        self.url
+    pub fn get_next_url (&mut self) -> Url {
+        let u = self.url.last().cloned().unwrap();
+        self.url.pop();
+        u
     }
 }
