@@ -24,9 +24,9 @@ impl SyncQ {
     pub fn insert (&mut self,  base_url: &mut Url, urlList: &Vec<Url>) {
         for elem in urlList.iter() {
             let url: Url = base_url.get_abs_path(elem);
-            //if !filter(url) {
-            //    continue;
-            //}
+            if !url.filter() {
+                continue;
+            }
 
             let temp: Url = url.get_url(Range::from_u8(Range::SCHEME as u8 | Range::NETLOC as u8 | Range::PATH as u8).unwrap());
             if !self.url_history.contains(&temp) {

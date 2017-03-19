@@ -1,7 +1,6 @@
 use std::mem;
 use std::ops::BitAnd;
 use std::clone::Clone;
-use std::cmp::Ordering;
 
 const DEFAULT_PORT: u16 = 80;
 
@@ -38,6 +37,30 @@ impl Url {
             frag_: "".to_string(),
             port_: 80
             }
+    }
+
+    fn get_scheme (&self) -> String {
+        self.scheme_.clone()
+    }
+
+    fn get_net_loc (&self) -> String {
+        self.net_loc_.clone()
+    }
+
+    fn get_path (&self) -> String {
+        self.path_.clone()
+    }
+
+    fn get_param (&self) -> String {
+        self.param_.clone()
+    }
+
+    fn get_query (&self) -> String {
+        self.query_.clone()
+    }
+
+    fn get_fragment (&self) -> String {
+        self.frag_.clone()
     }
 
     pub fn get_url (&self, range_: Range) -> Url {
@@ -233,5 +256,27 @@ impl Url {
             }
         }
         cur_composer.get_url (Range::ALL)
+    }
+
+    pub fn filter (&self) -> bool {
+        if self.get_scheme () != "http".to_string() {
+            return false;
+        }
+
+        let path = self.get_path ();
+        let pos = match path.rfind ('.') {
+            None => 0,
+            Some(p) => p,
+        };
+
+        if pos != 0 {
+            if path[pos..] == "html".to_string () ||
+                path[pos..] == "htm".to_string() {
+                    return true;
+            } else {
+                return false;
+            }
+        }
+        true
     }
 }

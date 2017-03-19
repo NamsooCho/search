@@ -2,6 +2,7 @@ use std::path::Path;
 use std::fs::File;
 use std::net::TcpStream;
 use std::error::Error;
+use std::collections::{BTreeSet};
 
 use sync_q::SyncQ;
 use url_parser::Url;
@@ -15,7 +16,7 @@ pub struct HttpSocketThread {
     continue_: bool,
     url_q: SyncQ,
     output_: String,
-    redir_history: Vec<String>,
+    redir_history: BTreeSet<Url>,
 }
 
 impl DNS {
@@ -24,8 +25,17 @@ impl DNS {
 
 impl HttpSocketThread {
     pub fn new () -> HttpSocketThread {
-        let mut sock = HttpSocketThread{continue_: true, url_q: SyncQ::new(), output_: "".to_string(), redir_history: Vec::new()};
+        let mut sock = HttpSocketThread{continue_: true, url_q: SyncQ::new(), output_: "".to_string(), redir_history: BTreeSet::new()};
         sock
+    }
+
+    fn check_redir (&mut self, url: &Url) -> bool {
+        if self.redir_history.contains(url) {
+            return false;
+        } else {
+            self.redir_history.insert (url.clone());
+        }
+        true
     }
 
     fn make_http_header (&self, url: &str, host: &str, cookie: &str) -> String {
@@ -57,9 +67,10 @@ impl HttpSocketThread {
         let ret: bool = false;
 
         while !done && err_.is_empty() {
-            //if (!check_redir(url)) {
-            //    break;
-            //}
+            if !self.check_redir(&url) {
+                break;
+            }
+
             let ip: &str = &url.net_loc_[..];
             let mut tcp_s = TcpStream::connect ((ip, url.port_));
             let send_data = self.make_http_header ("a", "b", "c");
@@ -99,7 +110,7 @@ impl HttpSocketThread {
 
     pub fn initiate (&mut self) {
         self.continue_ = true;
-        self.redir_history = Vec::new();
+        self.redir_history = BTreeSet::new();
         self.thread_function ();
     }
 }
