@@ -12,6 +12,7 @@ extern crate num;
 mod http_socket_thread;
 mod sync_q;
 mod url_parser;
+mod cookie;
 
 use http_socket_thread::HttpSocketThread;
 
