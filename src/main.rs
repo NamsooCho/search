@@ -5,6 +5,9 @@ use std::thread;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+#[macro_use] 
+extern crate enum_primitive;
+extern crate num;
 
 mod http_socket_thread;
 mod sync_q;
@@ -83,7 +86,7 @@ fn main() {
         sock_cnt: sock_cnt,
         };
 
-    info!("crawing start...");
+    info!("crawling start...");
     let mut children = vec![];
     let mut sock_arr = vec![];
     for i in 0..arg.sock_cnt {

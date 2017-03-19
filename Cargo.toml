@@ -7,3 +7,5 @@ authors = ["joe"]
 getopts = "0.2"
 env_logger = "0.4"
 log = "0.3"
+enum_primitive = "0.1.1"
+num = "*"
