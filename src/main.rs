@@ -1,4 +1,5 @@
 extern crate getopts;
+extern crate multimap;
 use getopts::Options;
 use std::env;
 use std::thread;
@@ -13,6 +14,7 @@ mod http_socket_thread;
 mod sync_q;
 mod url_parser;
 mod cookie;
+mod cookie_container;
 
 use http_socket_thread::HttpSocketThread;
 

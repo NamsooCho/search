@@ -70,5 +70,23 @@ impl Cookie {
         };
         let name = cookie[a..a+b].to_string();
         cookie_info.value_ = self.search_cookie_value(&cookie, &name);
+        cookie_info.expires_ = self.search_cookie_value(&cookie, &"expires".to_string());
+        cookie_info.path_ = self.search_cookie_value(&cookie, &"path".to_string());
+        cookie_info.domain_ = self.search_cookie_value(&cookie, &"domain".to_string());
+        cookie_info.secure_ = self.search_cookie_value(&cookie, &"secure".to_string());
+
+        if cookie_info.path_.is_empty() {
+            let mut path = url.get_path();
+            if path.rfind ('.') != None {
+                let end_pos = path.rfind ('/').unwrap ();
+                path.drain (..end_pos);
+            }
+            cookie_info.path_ = path;
+        }
+
+        if cookie_info.domain_.is_empty() {
+            cookie_info.domain_ = url.get_net_loc ();
+        }
+
     }
 }

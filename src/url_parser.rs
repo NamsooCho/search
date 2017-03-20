@@ -39,27 +39,27 @@ impl Url {
             }
     }
 
-    fn get_scheme (&self) -> String {
+    pub fn get_scheme (&self) -> String {
         self.scheme_.clone()
     }
 
-    fn get_net_loc (&self) -> String {
+    pub fn get_net_loc (&self) -> String {
         self.net_loc_.clone()
     }
 
-    fn get_path (&self) -> String {
+    pub fn get_path (&self) -> String {
         self.path_.clone()
     }
 
-    fn get_param (&self) -> String {
+    pub fn get_param (&self) -> String {
         self.param_.clone()
     }
 
-    fn get_query (&self) -> String {
+    pub fn get_query (&self) -> String {
         self.query_.clone()
     }
 
-    fn get_fragment (&self) -> String {
+    pub fn get_fragment (&self) -> String {
         self.frag_.clone()
     }
 
