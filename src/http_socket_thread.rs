@@ -6,6 +6,7 @@ use std::collections::{BTreeSet};
 
 use sync_q::SyncQ;
 use url_parser::Url;
+use cookie_container::CookieContainer;
 
 struct DNS {
 
@@ -17,6 +18,7 @@ pub struct HttpSocketThread {
     url_q: SyncQ,
     output_: String,
     redir_history: BTreeSet<Url>,
+    cookie: CookieContainer,
 }
 
 impl DNS {
@@ -24,8 +26,8 @@ impl DNS {
 }
 
 impl HttpSocketThread {
-    pub fn new () -> HttpSocketThread {
-        let mut sock = HttpSocketThread{continue_: true, url_q: SyncQ::new(), output_: "".to_string(), redir_history: BTreeSet::new()};
+    pub fn new (cookies: &mut CookieContainer) -> HttpSocketThread {
+        let mut sock = HttpSocketThread{continue_: true, url_q: SyncQ::new(), output_: "".to_string(), redir_history: BTreeSet::new(), cookie: *cookies};
         sock
     }
 

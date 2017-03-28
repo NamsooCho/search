@@ -15,8 +15,10 @@ mod sync_q;
 mod url_parser;
 mod cookie;
 mod cookie_container;
+mod http_parser;
 
 use http_socket_thread::HttpSocketThread;
+use cookie_container::CookieContainer;
 
 struct Args {
     q_limit: u32,
@@ -92,8 +94,9 @@ fn main() {
     info!("crawling start...");
     let mut children = vec![];
     let mut sock_arr = vec![];
+    let mut cookie = CookieContainer::new();
     for i in 0..arg.sock_cnt {
-        let mut sock = HttpSocketThread::new();
+        let mut sock = HttpSocketThread::new(&mut cookie);
         sock_arr.push(sock.clone());
         children.push(thread::spawn(move || {
             sock.initiate();

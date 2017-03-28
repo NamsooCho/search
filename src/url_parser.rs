@@ -39,6 +39,16 @@ impl Url {
             }
     }
 
+    pub fn compare_netloc (l_netloc: &String, r_netloc: &String) -> bool {
+        if l_netloc != r_netloc {
+            if ("www.".to_string() + l_netloc) != *r_netloc &&
+                *l_netloc != ("www.".to_string() + r_netloc) {
+                    return false;
+                }
+        }
+        true
+    }
+
     pub fn get_scheme (&self) -> String {
         self.scheme_.clone()
     }
