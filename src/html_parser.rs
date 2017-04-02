@@ -23,11 +23,15 @@ impl HtmlParser {
 
     }
 
-    fn tag (&self, data: &[u8], b: &mut i32) -> i32 {
+    fn tag (&self, data: &[u8], b: i32) -> i32 {
         let prev = b;
         let e = data.len();
-        
-        while b < e && !
+
+        while b < e && !data[b].is_whitespace() && data[b] != '>' && data[b] != '<' {
+            b = b + 1;
+        }
+
+        if data[b] == '<' || b == e
     }
 
     pub fn parse (&self, html: String) -> bool {
