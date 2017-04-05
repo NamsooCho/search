@@ -9,5 +9,7 @@ pub struct Cookie {
 }
 
 impl Cookie {
-
+    pub fn clear (&self) {
+        
+    }
 }

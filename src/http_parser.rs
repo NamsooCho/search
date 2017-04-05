@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 use cookie::Cookie;
+#[derive(PartialEq)] enum State { INIT, HEADER_PARTIAL, BODY_PARTIAL, }
+#[derive(PartialEq)] enum ChunkState { CHUNK_INIT, CHUNK_PARTIAL, }
+#[derive(PartialEq)] enum Method { GET, POST, RESPONSE, ERROR, }
 
 pub struct HttpParser {
     state_: State,
     buf_: String,
-    method_: String,
+    method_: Method,
     body_: String,
-    rep_code_: i32,
+    rep_code_: usize,
     is_chunk_: bool,
-    contents_len_: i32,
+    contents_len_: usize,
     chunk_state_: ChunkState,
     chunk_size_: i32,
     host_: String,
@@ -16,16 +19,14 @@ pub struct HttpParser {
     cookie_: Cookie,
 }
 
-enum State { INIT, HEADER_PARTIAL, BODY_PARTIAL, }
-enum ChunkState { CHUNK_INIT, CHUNK_PARTIAL, }
-enum Method { GET, POST, RESPONSE, ERROR, }
-
 impl HttpParser {
     fn clear_parser (&self) {
         self.state_ = State::INIT;
         self.chunk_state_ = ChunkState::CHUNK_INIT;
-        self.rep_code_ = self.contents_len_ = self.chunk_size_ = 0;
-        self.method_.clear();
+        self.rep_code_ = 0;
+        self.contents_len_ = 0;
+        self.chunk_size_ = 0;
+        self.method_ = Method::ERROR;
 
         self.host_.clear();
         self.location_.clear();
@@ -44,24 +45,24 @@ impl HttpParser {
         let mut cur = b;
 
         for i in 0..e {
-            if prev != b && data[cur - 1] == '\r' && data[cur] == '\n' {
+            if prev != b && data[cur - 1] == '\r' as u8 && data[cur] == '\n' as u8 {
                 if !self.buf_.is_empty() {
-                    self.buf_.push_str &(String::from_utf8_lossy(data[prev..cur]));
+                    self.buf_.push_str (&String::from_utf8_lossy(&data[prev..cur]));
                     let temp = self.buf_.clone();
-                    if self.method_ == 0 {
-                        self.method_ = self.parse_method (temp, temp.len());
+                    if self.method_ == Method::ERROR {
+                        self.method_ = self.parse_method (&temp.as_bytes());
                     }
                     else {
-                        hdr_partial = parse_field (temp, temp.len());
+                        hdr_partial = self.parse_field (&temp);
                     }
                     self.buf_.clear();
                 }
                 else {
                     if self.method_len() == 0 {
-                        self.method_ = parse_method (data[prev.. cur -1], cur - prev - 1);
+                        self.method_ = self.parse_method (&data[prev.. cur -1]);
                     }
                     else {
-                        hdr_partial = parse_field (data[prev.. cur -1], cur - prev - 1);
+                        hdr_partial = self.parse_field (&data[prev.. cur -1]);
                     }
                 }
                 prev = cur + 1;
@@ -70,28 +71,28 @@ impl HttpParser {
         }
         if hdr_partial {
             self.state_ = State::HEADER_PARTIAL;
-            self.buf_.push_str &(String::from_utf8_lossy(data[prev.. e]));
+            self.buf_.push_str (&String::from_utf8_lossy(&data[prev.. e]));
         }
         else {
             self.state_ = State::BODY_PARTIAL;
             if self.contents_len_ > 0 {
-                self.body_.reserve (self.contents_len_);
+                self.body_.reserve (self.contents_len_ as usize);
             }
-            self.parse_body (data[prev..e], e - prev);
+            self.parse_body (&data[prev..e]);
         }
     }
 
-    fn parse_method (&self, data: &[u8]) Method {
+    fn parse_method (&self, data: &[u8]) -> Method {
         let mut method_list = HashMap::new();
 
-        method_list.insert ("GET", Method::GET);
-        method_list.insert ("POST", Method::POST);
-        method_list.insert ("HTTP", Method::RESPONSE);
+        method_list.insert ("GET".to_string(), Method::GET);
+        method_list.insert ("POST".to_string(), Method::POST);
+        method_list.insert ("HTTP".to_string(), Method::RESPONSE);
 
-        let mut iter = String::from_utf8_lossy(data).split_whitespace();
+        let mut iter = String::from_utf8_lossy(&data).split_whitespace();
         let mut method: String = iter.next().unwrap().to_uppercase();
-        let code = match method_list.get(&method) {
-            Some(x) => x,
+        let code: Method = match method_list.get(&method) {
+            Some(x) => *x,
             None => Method::ERROR,
         };
 
@@ -101,27 +102,28 @@ impl HttpParser {
         return code;
     }
 
-    fn get_chunk_size (&self, data: &[u8]) -> i32 {
-        let mut cur = 0;
-        for i in 0..data.len() {
-            if !data[i].is_digit(16) {
+    fn get_chunk_size (&self, data: &[u8]) -> usize {
+        let mut cur: usize = 0;
+        let mut prev: usize = 0;
+        for i in 0..data.len() as usize {
+            if !(data[i] as char).is_digit(16) {
                 continue;
             }
-            let prev = i;
+            prev = i;
 
-            if data[i].is_digit(16) {
+            if (data[i] as char).is_digit(16) {
                 continue;
             }
 
-            let self.chunk_size_ = String::from_utf8_lossy(data[prev..i]).parse().unwrap();
+            self.chunk_size_ = String::from_utf8_lossy(&data[prev..i]).parse().unwrap();
 
-            if data[i-1] == '\r' && data[i] == '\n' {
+            if data[i-1] == ('\r' as u8) && data[i] == ('\n' as u8) {
                 cur = i;
                 break;
             }
         }
 
-        if cur >= data.len() {
+        if cur >= data.len() as usize {
             self.chunk_size_ = -1;
             cur = prev;
         }
@@ -132,24 +134,24 @@ impl HttpParser {
         cur
     }
     
-    fn append_body (&self, data: &[u8], b: mut i32) -> i32 {
+    fn append_body (&self, data: &[u8], mut b:  usize) -> usize {
         if self.chunk_size_ < 0 {
-            self.buf_.add (data[b..]);
-            return data.len();
+            self.buf_.push_str (&String::from_utf8_lossy(&data[b..]));
+            return data.len() as usize;
         }
 
-        let data_size = data.len() - b;
+        let data_size = data.len() as usize - b;
 
-        if data_size > self.chunk_size_ {
-            self.body_.add (data[b..b+self.chunk_size_]);
-            b = b + self.chunk_size_;
+        if data_size as i32 > self.chunk_size_ {
+            self.body_.push_str (&String::from_utf8_lossy(&data[b..b+self.chunk_size_ as usize]));
+            b = b + self.chunk_size_ as usize;
             self.chunk_state_ = ChunkState::CHUNK_INIT;
         }
         else {
-            self.body_.add (data[b..]);
-            self.chunk_state = ChunkState::CHUNK_PARTIAL;
-            self.chunk_size_ = self.chunk_size_ - data_size;
-            b = data.len();
+            self.body_.push_str (&String::from_utf8_lossy(&data[b..]));
+            self.chunk_state_ = ChunkState::CHUNK_PARTIAL;
+            self.chunk_size_ = self.chunk_size_ - data_size as i32;
+            b = data.len() as usize;
         }
 
         b
@@ -157,13 +159,13 @@ impl HttpParser {
 
     fn parse_chunk (&self, data: &[u8]) {
         let mut b = 0;
-        let mut e = b + data.len();
+        let mut e = b + data.len() as usize;
 
         while b < e {
             if self.chunk_state_ == ChunkState::CHUNK_INIT {
                 b = self.get_chunk_size (data);
                 if self.chunk_size_ == -1 {
-                    self.buf_.add (&String::from_utf8_lossy(data[b..e]));
+                    self.buf_.push_str (&String::from_utf8_lossy(&data[b..e]));
                     self.chunk_state_ = ChunkState::CHUNK_PARTIAL;
                     break;
                 }
@@ -177,18 +179,18 @@ impl HttpParser {
             }
             else if self.chunk_state_ == ChunkState::CHUNK_PARTIAL {
                 if e - b < 2 && self.chunk_size_ < 0 {
-                    self.buf_.add (&String::from_utf8_lossy(data[b..e]));
+                    self.buf_.push_str (&String::from_utf8_lossy(&data[b..e]));
                     b = b + 1;
                 }
                 else {
-                    if self.buf_.len() != 0 {
+                    if self.buf_.len() as usize != 0 {
                         let mut prev = b;
-                        while b < e && data[b] != '\r' && data[b+1] != '\n' {
+                        while b < e && data[b] != ('\r' as u8) && data[b+1] != ('\n' as u8) {
                             b = b + 1;
                         }
                         if b < e {
                             b = b + 2;
-                            self.buf_.add (&String::from_utf8_lossy(data[prev..b]));
+                            self.buf_.push_str (&String::from_utf8_lossy(&data[prev..b]));
                             let temp = self.buf_;
                             self.get_chunk_size (temp.as_bytes());
                             self.buf_.clear();
@@ -196,7 +198,7 @@ impl HttpParser {
                                 b = self.append_body(data, b);
                             }
                             else if self.chunk_size_ == 0 {
-                                self.chunk_state_ = State::INIT;
+                                self.chunk_state_ = ChunkState::CHUNK_INIT;
                                 break;
                             }
                             else {
@@ -204,7 +206,7 @@ impl HttpParser {
                             }
                         }
                         else {
-                            self.buf_.add(&String::from_utf8_lossy(data[prev..b]));
+                            self.buf_.push_str(&String::from_utf8_lossy(&data[prev..b]));
                         }
                     }
                     else {
@@ -223,8 +225,8 @@ impl HttpParser {
             self.parse_chunk (data);
         }
         else {
-            self.body_.push_str(&String::from_utf8_lossy(data));
-            if self.body_.len() >= self.contents_len_ {
+            self.body_.push_str(&String::from_utf8_lossy(&data));
+            if self.body_.len() as usize >= self.contents_len_ {
                 self.state_ = State::INIT;
             }
         }
@@ -233,9 +235,9 @@ impl HttpParser {
     pub fn parse (&self, data_: String) {
         let mut data = data_.as_bytes();
         match self.state_ {
-            0   => self.clear_parser (),
-            1   => self.parse_header (&data),
-            2   => self.parse_body (&data),
+            State::INIT   => self.clear_parser (),
+            State::HEADER_PARTIAL   => self.parse_header (&data),
+            State::BODY_PARTIAL   => self.parse_body (&data),
         };
     }
 }
