@@ -36,6 +36,78 @@ impl HttpParser {
         self.is_chunk_ = false;
     }
 
+    fn get_field_data (&self, b: usize, e: usize, temp: &mut String) {
+        let data = temp.as_bytes();
+        let mut rlt = Vec::new();
+
+        b = b + data.len();
+        while b < e && (data[b] == ':' as u8 || data[b] == ' ' as u8) {
+            b = b + 1;
+        }
+
+        while b < e && data[b] != '\r' as u8 && data[b] != '\n' as u8 {
+            rlt.push(data[b]);
+            b = b + 1;
+        }
+
+        *temp = String::from_utf8(rlt).unwrap();
+    }
+
+    fn parse_field (&self, data: &[u8]) -> bool {
+        let con_len = "content-length".to_string();
+        let host = "host".to_string();
+        let location = "location".to_string();
+        let cookie = "set-cookie".to_string();
+        let trans_enc = "transfer-encoding".to_string();
+        let chunk = "chunked".to_string();
+
+        let mut temp = String::new();
+        let mut b: usize = 0;
+        let e = data.len() as usize;
+
+        match (data[b] as char).to_uppercase().next().unwrap() {
+            'C' => {
+                if b + con_len.len() < e && con_len == String::from_utf8_lossy(&data[b..b+con_len.len()]) {
+                    self.get_field_data (b, e, &mut temp);
+                    self.contents_len_ = temp.parse().unwrap();
+                }
+            },
+
+            'H' => {
+                if b + host.len() < e && host == String::from_utf8_lossy(&data[b..b+host.len()]) {
+                    self.get_field_data (b, e, &mut self.host_);
+                }
+            },
+
+            'L' => {
+                if b + location.len() < e && location == String::from_utf8_lossy(&data[b..b+location.len()]) {
+                    self.get_field_data (b, e, &mut self.location_);
+                }
+            },
+
+            'S' => {
+                if b + cookie.len() < e && cookie == String::from_utf8_lossy(&data[b..b+cookie.len()]) {
+                    self.get_field_data (b, e, &mut temp);
+                    self.cookie_.push_back(temp.clone());
+                }
+            },
+
+            'T' => {
+                if b + trans_enc.len() < e && trans_enc == String::from_utf8_lossy(&data[b..b+trans_enc.len()]) {
+                    self.get_field_data (b, e, &mut temp);
+                    if chunk == temp {
+                        self.is_chunk_ = true;
+                    }
+                }
+            },
+
+            '\r' => {
+                return false;
+            }
+        }
+        true
+    }
+
     fn parse_header (&self, data: &[u8]) {
         let mut hdr_partial = true;
         let mut b = 0;
@@ -53,12 +125,12 @@ impl HttpParser {
                         self.method_ = self.parse_method (&temp.as_bytes());
                     }
                     else {
-                        hdr_partial = self.parse_field (&temp);
+                        hdr_partial = self.parse_field (&temp.as_bytes());
                     }
                     self.buf_.clear();
                 }
                 else {
-                    if self.method_len() == 0 {
+                    if self.method_ == Method::ERROR {
                         self.method_ = self.parse_method (&data[prev.. cur -1]);
                     }
                     else {
