@@ -16,6 +16,7 @@ mod url_parser;
 mod cookie;
 mod cookie_container;
 mod http_parser;
+mod html_parser;
 
 use http_socket_thread::HttpSocketThread;
 use cookie_container::CookieContainer;
