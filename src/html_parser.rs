@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str;
 
 
 #[derive(PartialEq)] enum State { INIT, TAG, COMMENT, }
@@ -77,33 +78,33 @@ impl HtmlParser {
         }
 
         if set_e != e && !(data[set_e] as char).is_whitespace() {
-            let mut code = 0;
-            if data[cur] == '#' {
+            let mut code: u8 = 0;
+            if data[cur] == '#' as u8 {
                 cur = cur + 1;
-                code = String::from_utf8_lossy(data[cur..set_e]).parse();
+                code = str::from_utf8(&data[cur..set_e]).unwrap().to_string().parse().unwrap();
             }
             else {
-                code = self.latin_set_.get(String::from_utf8_lossy(data[cur..set_e])).unwrap();
+                code = *self.latin_set_.get(str::from_utf8(&data[cur..set_e]).unwrap()).unwrap();
             }
 
             if code > 0 {
                 if code > 127 {
-                    c = ' ';
+                    *c = ' ';
                 }
                 else {
-                    c = code;
+                    *c = code as char;
                 }
                 return set_e;
             }
         }
-        c = data[b];
+        *c = data[b] as char;
         b
     }
 
     fn get_tag_type (&self, data: &[u8], prev: usize, b: usize) -> TagType {
-        let tag = String::from_utf8_lossy(data[prev..b]).to_uppercase();
+        let tag = str::from_utf8(&data[prev..b]).unwrap().to_uppercase();
 
-        let rlt = match tag {
+        let rlt = match tag.as_ref() {
             "A" => TagType::A,
             "FRAME" => TagType::FRAME,
             "SCRIPT" => TagType::SCRIPT,
@@ -121,12 +122,12 @@ impl HtmlParser {
 
             let mut prev = b;
 
-            while data[b] != '=' && !(data[b] as char).is_whitespace() {
+            while data[b] != '=' as u8 && !(data[b] as char).is_whitespace() {
                 b = b + 1;
             }
 
-            let attr = String::from_utf8_lossy(data[prev..b]).to_uppercase();
-            let attr_type = match attr {
+            let attr = str::from_utf8(&data[prev..b]).unwrap().to_uppercase();
+            let attr_type = match attr.as_ref() {
                 "HREF" => AttrType::HREF,
                 "SRC" => AttrType::SRC,
                 _ => AttrType::UNKNOWN,
@@ -148,7 +149,7 @@ impl HtmlParser {
                 while b < e && (data[b] as char).is_whitespace() {
                     b = b + 1;
                 }
-                value = String::from_utf8_lossy(data[val_b..b]);
+                value = str::from_utf8(&data[val_b..b]).unwrap().to_string();
                 b = b + 1;
             }
             else {
@@ -156,7 +157,7 @@ impl HtmlParser {
                 while b < e && !(data[b] as char).is_whitespace() {
                     b = b + 1;
                 }
-                value = String::from_utf8_lossy(data[val_b..b]);
+                value = str::from_utf8(&data[val_b..b]).unwrap().to_string();
             }
 
             if attr_type != AttrType::UNKNOWN {
@@ -299,8 +300,8 @@ impl HtmlParser {
                     }
                     else if self.is_body_ {
                         let c: char = data[b].clone() as char;
-                        if c == '&' a{
-                            b = self.convert_latin_set (&b, &e, &c);
+                        if c == '&' {
+                            b = self.convert_latin_set (data, b, e, &c);
                         }
                         let mut temp = self.plain_text_.clone();
                         if !c.is_whitespace() || self.plain_text_.is_empty() || !temp.pop().unwrap().is_whitespace() {
