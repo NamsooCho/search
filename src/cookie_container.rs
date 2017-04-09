@@ -3,6 +3,8 @@ use cookie::Cookie;
 use url_parser::Url;
 use std::fmt;
 
+use time::{strptime, now};
+
 //#[derive(Debug)]
 pub struct CookieContainer {
     cookie_container: MultiMap<String,Cookie>,
@@ -21,7 +23,41 @@ impl fmt::Debug for CookieContainer {
 impl CookieContainer {
     pub fn new () -> CookieContainer {
         let mut s = CookieContainer {cookie_container: MultiMap::new()};
-        s
+    }
+
+    fn is_expired (&self, date: &String) -> bool {
+        if date.is_empty() {
+            return false;
+        }
+
+        let expire = time::strptime (&date, "%FT%T%z").unwrap();
+        let now = time::now();
+
+        expire < now
+    }
+
+    fn get_cookie (&self, url: &Url) -> String {
+        let mut result = String::new();
+
+        if url.empty() {
+            return result;
+        }
+
+        for (key, value) in self.cookie_container.iter_mut() {
+            if (url.compare_netloc(value.domain_) || !url.get_net_loc().find(value.domain_).is_empty()) && !url.get_path().find(value.path_).is_empty() {
+                if value.expires_.is_empty() || !self.is_expired (&value.expires_) {
+                    result = result + key + &"=" + value.value_ + &"; ";
+                }
+                else {
+                    self.cookie_container.remove(key);
+                    continue;
+                }
+            }
+        }
+        if !result.is_empty() {
+            result.remove(result.rfind(";"));
+        }
+        result
     }
 
     fn search_cookie_value (&self, cookie: &String, field: &String) -> String {

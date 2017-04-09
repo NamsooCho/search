@@ -9,6 +9,7 @@ extern crate env_logger;
 #[macro_use] 
 extern crate enum_primitive;
 extern crate num;
+extern crate time;
 
 mod http_socket_thread;
 mod sync_q;
