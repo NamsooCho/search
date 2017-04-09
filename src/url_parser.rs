@@ -289,4 +289,8 @@ impl Url {
         }
         true
     }
+
+    pub fn update (&self, new_url: &Url) {
+        *self = self.get_abs_path (self.get_url(), new_url.get_url());
+    }
 }

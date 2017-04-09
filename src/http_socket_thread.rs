@@ -3,14 +3,15 @@ use std::fs::File;
 use std::net::TcpStream;
 use std::error::Error;
 use std::collections::{BTreeSet};
+use std::io::prelude::*;
 
 use sync_q::SyncQ;
 use url_parser::Url;
 use cookie_container::CookieContainer;
-
-struct DNS {
-
-}
+use html_parser::HtmlParser;
+use http_parser::HttpParser;
+use dns::Dns;
+use url_parser::Range;
 
 #[derive(Debug, Clone)]
 pub struct HttpSocketThread {
@@ -18,16 +19,22 @@ pub struct HttpSocketThread {
     url_q: SyncQ,
     output_: String,
     redir_history: BTreeSet<Url>,
-    cookie: CookieContainer,
-}
-
-impl DNS {
-    fn get_sock_addr (host: &str, port: &str) {}
+    cookie_: CookieContainer,
+    dns_: Dns,
+    http_parser_: HttpParser,
 }
 
 impl HttpSocketThread {
     pub fn new (cookies: &mut CookieContainer) -> HttpSocketThread {
-        let mut sock = HttpSocketThread{continue_: true, url_q: SyncQ::new(), output_: "".to_string(), redir_history: BTreeSet::new(), cookie: *cookies};
+        let mut sock = HttpSocketThread {
+            continue_: true, 
+            url_q: SyncQ::new(), 
+            output_: "".to_string(), 
+            redir_history: BTreeSet::new(), 
+            cookie_: *cookies,
+            dns_: Dns::new(),
+            http_parser: HttpParser::new(),
+        };
         sock
     }
 
@@ -58,6 +65,33 @@ impl HttpSocketThread {
         hdr
     }
 
+    fn recv_data (&self, sock: &mut TcpStream) -> bool {
+        let &mut data = Vec::new();
+        let mut ret = 0;
+        let mut recv_size = 0;
+        let mut done = false;
+
+        self.http_parser_.clear();
+
+        while !done {
+            recv_size = sock.read_to_end (&data).unwrap();
+            if recv_size <= 0 {
+                self.err_ = "connection closed.".to_string();
+                return false;
+            }
+
+            self.http_parser_.parse(&data);
+            done = !self.http_parser_.is_partial();
+            data.clear();
+        }
+
+        if !self.http_parser_.is_ok() && !self.http_parser_.is_redirect() {
+            self.err_ = format!("HTTP Error (Response Code: {})", self.http_parser_.get_rep_code());
+        }
+
+        self.http_parser_.is_ok()
+    }
+
     fn request (&mut self, url: &Url) -> bool {
         if url.empty() {
             return false;
@@ -73,15 +107,30 @@ impl HttpSocketThread {
                 break;
             }
 
-            let ip: &str = &url.net_loc_[..];
-            let mut tcp_s = TcpStream::connect ((ip, url.port_));
-            let send_data = self.make_http_header ("a", "b", "c");
+            let mut addr = String::new();
+            if self.dns_.get_sock_addr (&url.host, &addr) {
+                let mut tcp_s = match TcpStream::connect ((addr, url.port_)) {
+                    Ok(s) => s,
+                    _ => err_ = "fail to connect".to_string(),
+                };
+                let mut send_data = String::new();
+                send_data = self.make_http_header (url.get_url(Range::PATH|Range::PARAM|Range::QUERY), url.get_net_loc(), self.cookie.get_cookie(url));
+                tcp_s.write(send_data.as_bytes());
+                self.recv_data (&tcp_s);
+                self.cookie.cookie_container.insert()
+            }
+            if self.http_parser_.is_redirect() && !self.http_parser_.get_location().is_empty() {
+                url.update(self.http_parser_.get_location());
+            }
+            else {
+                done = true;
+            }
         }
         true
     }
 
     fn thread_function (&mut self) {
-        //let html_parser: HtmlParse = HtmlParser::new();
+        let html_parser: HtmlParser = HtmlParser::new();
 
         let mut html_cnt = 0;
 
@@ -100,12 +149,12 @@ impl HttpSocketThread {
                     Ok(f) => f,
                     Err(why) => panic!("couldn't open {}: {}", display, why.description()),
                 };
-                //out_file.write_all (self.get_body ().as_bytes()).unwrap();
-                //html_parser.parse (self.get_body().to_string(), self.get_body().to_string().len());
-                //self.url_q.insert (&url, html_parser.extract_link_url_list ());
+                out_file.write_all (self.http_parser.get_body ().as_bytes()).unwrap();
+                html_parser.parse (self.http_parser.get_body().to_string(), self.http_parser.get_body().to_string().len());
+                self.url_q.insert (&url, html_parser.extract_link_url_list ());
             }
             else {
-                //error!("{} --> {}", url.url, self.get_err_msg());
+                error!("{} --> {}", url.url, self.get_err_msg());
             }
         }
     }

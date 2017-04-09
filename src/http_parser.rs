@@ -20,6 +20,24 @@ pub struct HttpParser {
 }
 
 impl HttpParser {
+    pub fn new () -> HttpParser {
+        let mut h = HttpParser {
+            state_: State::INIT,
+            buf_: String::new(),
+            method_: Method::ERROR,
+            body_:String::new(),
+            rep_code_: 0,
+            is_chunk_: false,
+            contents_len_: 0,
+            chunk_state_: ChunkState::CHUNK_INIT,
+            chunk_size_: 0,
+            host_: String::new(),
+            location_: String::new(),
+            cookie_: Cookie::new(),
+        };
+        h
+    }
+
     fn clear_parser (&self) {
         self.state_ = State::INIT;
         self.chunk_state_ = ChunkState::CHUNK_INIT;
@@ -35,6 +53,16 @@ impl HttpParser {
         self.cookie_.clear();
         self.is_chunk_ = false;
     }
+
+    pub fn get_body (&self) -> String {
+        self.body_
+    }
+
+    pub fn get_location (&self) -> String { self.location_ }
+    pub fn is_ok(&self) -> bool { return self.rep_code_ >= 200 && self.rep_code_ < 300; }
+    pub fn is_redirect(&self) -> bool { return self.rep_code_ >= 300 && self.rep_code_ < 400; }
+    pub fn is_partial(&self) -> bool { return self.state_ != State::INIT; }
+    pub fn get_rep_code(&self) -> usize { self.rep_code_ }
 
     fn get_field_data (&self, b: usize, e: usize, temp: &mut String) {
         let data = temp.as_bytes();
