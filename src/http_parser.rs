@@ -38,7 +38,7 @@ impl HttpParser {
         h
     }
 
-    fn clear_parser (&self) {
+    fn clear (&self) {
         self.state_ = State::INIT;
         self.chunk_state_ = ChunkState::CHUNK_INIT;
         self.rep_code_ = 0;

@@ -22,6 +22,7 @@ pub struct HttpSocketThread {
     cookie_: CookieContainer,
     dns_: Dns,
     http_parser_: HttpParser,
+    err_: String,
 }
 
 impl HttpSocketThread {
@@ -33,7 +34,8 @@ impl HttpSocketThread {
             redir_history: BTreeSet::new(), 
             cookie_: *cookies,
             dns_: Dns::new(),
-            http_parser: HttpParser::new(),
+            http_parser_: HttpParser::new(),
+            err_: String::new(),
         };
         sock
     }
@@ -66,7 +68,7 @@ impl HttpSocketThread {
     }
 
     fn recv_data (&self, sock: &mut TcpStream) -> bool {
-        let &mut data = Vec::new();
+        let mut data = Vec::new();
         let mut ret = 0;
         let mut recv_size = 0;
         let mut done = false;
@@ -149,8 +151,8 @@ impl HttpSocketThread {
                     Ok(f) => f,
                     Err(why) => panic!("couldn't open {}: {}", display, why.description()),
                 };
-                out_file.write_all (self.http_parser.get_body ().as_bytes()).unwrap();
-                html_parser.parse (self.http_parser.get_body().to_string(), self.http_parser.get_body().to_string().len());
+                out_file.write_all (self.http_parser_.get_body ().as_bytes()).unwrap();
+                html_parser.parse (self.http_parser_.get_body().to_string(), self.http_parser_.get_body().to_string().len());
                 self.url_q.insert (&url, html_parser.extract_link_url_list ());
             }
             else {

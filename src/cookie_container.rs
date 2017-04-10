@@ -3,7 +3,7 @@ use cookie::Cookie;
 use url_parser::Url;
 use std::fmt;
 
-use time::{strptime, now};
+use time;
 
 //#[derive(Debug)]
 pub struct CookieContainer {
