@@ -16,7 +16,7 @@ enum_from_primitive! {
     }
 }
 
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)]
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq,Hash)]
 pub struct Url {
     scheme_: String,
     pub net_loc_: String,
@@ -29,14 +29,16 @@ pub struct Url {
 
 impl Url {
     pub fn new () -> Url {
-        Url{scheme_: "".to_string(),
+        let mut u = Url {
+            scheme_: "".to_string(),
             net_loc_: "".to_string(),
             path_: "".to_string(),
             param_: "".to_string(),
             query_: "".to_string(),
             frag_: "".to_string(),
             port_: 80
-            }
+        };
+        u
     }
 
     pub fn compare_netloc (l_netloc: &String, r_netloc: &String) -> bool {
@@ -107,7 +109,7 @@ impl Url {
         res_url
     }
 
-    pub fn get_url_str (&self, range_: Range) -> String {
+    pub fn get_url_str (&self, range_: u8) -> String {
         let range: u8 = range_ as u8;
         let mut url = String::new();
         if range & Range::SCHEME as u8 == Range::SCHEME as u8 && !self.scheme_.is_empty() {
@@ -290,7 +292,7 @@ impl Url {
         true
     }
 
-    pub fn update (&self, new_url: &Url) {
+    pub fn update (&self, new_url: String) {
         *self = self.get_abs_path (self.get_url(), new_url.get_url());
     }
 }

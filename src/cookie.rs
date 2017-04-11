@@ -9,6 +9,16 @@ pub struct Cookie {
 }
 
 impl Cookie {
+    pub fn new() -> Cookie {
+        let mut c = Cookie {
+            value_: String::new(),
+            expires_: String::new(),
+            path_: String::new(),
+            domain_: String::new(),
+            secure_: String::new(),
+        };
+        c
+    }
     pub fn clear (&self) {
         
     }

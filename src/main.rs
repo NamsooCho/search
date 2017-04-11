@@ -1,3 +1,4 @@
+#![feature(lookup_host)]
 extern crate getopts;
 extern crate multimap;
 use getopts::Options;

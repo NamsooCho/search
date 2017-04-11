@@ -4,6 +4,7 @@ use cookie::Cookie;
 #[derive(PartialEq)] enum ChunkState { CHUNK_INIT, CHUNK_PARTIAL, }
 #[derive(PartialEq)] enum Method { GET, POST, RESPONSE, ERROR, }
 
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)]
 pub struct HttpParser {
     state_: State,
     buf_: String,
@@ -38,7 +39,7 @@ impl HttpParser {
         h
     }
 
-    fn clear (&self) {
+    pub fn clear (&self) {
         self.state_ = State::INIT;
         self.chunk_state_ = ChunkState::CHUNK_INIT;
         self.rep_code_ = 0;
@@ -56,6 +57,10 @@ impl HttpParser {
 
     pub fn get_body (&self) -> String {
         self.body_
+    }
+
+    pub fn get_cookie (&self) -> Cookie {
+        self.cookie_
     }
 
     pub fn get_location (&self) -> String { self.location_ }
@@ -332,7 +337,7 @@ impl HttpParser {
         }
     }
     
-    pub fn parse (&self, data_: String) {
+    pub fn parse (&self, data_: &mut[u8]) {
         let mut data = data_.as_bytes();
         match self.state_ {
             State::INIT   => self.clear_parser (),

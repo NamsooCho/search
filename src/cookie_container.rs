@@ -7,7 +7,7 @@ use time;
 
 //#[derive(Debug)]
 pub struct CookieContainer {
-    cookie_container: MultiMap<String,Cookie>,
+    pub cookie_container: MultiMap<Url,Cookie>,
 }
 
 impl Clone for CookieContainer {
@@ -23,6 +23,7 @@ impl fmt::Debug for CookieContainer {
 impl CookieContainer {
     pub fn new () -> CookieContainer {
         let mut s = CookieContainer {cookie_container: MultiMap::new()};
+        s
     }
 
     fn is_expired (&self, date: &String) -> bool {
@@ -36,7 +37,7 @@ impl CookieContainer {
         expire < now
     }
 
-    fn get_cookie (&self, url: &Url) -> String {
+    pub fn get_cookie (&self, url: &Url) -> String {
         let mut result = String::new();
 
         if url.empty() {

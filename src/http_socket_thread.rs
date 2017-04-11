@@ -4,6 +4,7 @@ use std::net::TcpStream;
 use std::error::Error;
 use std::collections::{BTreeSet};
 use std::io::prelude::*;
+use std::net::SocketAddrV4;
 
 use sync_q::SyncQ;
 use url_parser::Url;
@@ -49,20 +50,20 @@ impl HttpSocketThread {
         true
     }
 
-    fn make_http_header (&self, url: &str, host: &str, cookie: &str) -> String {
+    fn make_http_header (&self, url: String, host: String, cookie: String) -> String {
         let mut hdr: String = "GET ".to_string();
         if !url.is_empty() {
-            hdr = hdr + url;
+            hdr = hdr + &url;
         }
         else {
             hdr += "/";
         }
         hdr = hdr + " HTTP/1.1\r\n";
-        hdr = hdr + "Host: " + host + "\r\n";
+        hdr = hdr + "Host: " + &host + "\r\n";
         hdr = hdr + "User-Agent: TinyCrawler\r\n";
         hdr = hdr + "Accept: */*\r\n";
         hdr = hdr + "Accept-Language: ko\r\n";
-        hdr = hdr + "Cookie: " + cookie + "\r\n";
+        hdr = hdr + "Cookie: " + &cookie + "\r\n";
         hdr = hdr + "\r\n";
         hdr
     }
@@ -76,13 +77,13 @@ impl HttpSocketThread {
         self.http_parser_.clear();
 
         while !done {
-            recv_size = sock.read_to_end (&data).unwrap();
+            recv_size = sock.read_to_end (&mut data).unwrap();
             if recv_size <= 0 {
                 self.err_ = "connection closed.".to_string();
                 return false;
             }
 
-            self.http_parser_.parse(&data);
+            self.http_parser_.parse(&mut data);
             done = !self.http_parser_.is_partial();
             data.clear();
         }
@@ -109,17 +110,22 @@ impl HttpSocketThread {
                 break;
             }
 
-            let mut addr = String::new();
-            if self.dns_.get_sock_addr (&url.host, &addr) {
-                let mut tcp_s = match TcpStream::connect ((addr, url.port_)) {
+            let mut addr;
+            if self.dns_.get_sock_addr (&url.get_net_loc(), &mut addr) {
+                let mut tcp_s = match TcpStream::connect (addr) {
                     Ok(s) => s,
-                    _ => err_ = "fail to connect".to_string(),
+                    _ => {
+                        err_ = "fail to connect".to_string();
+                        continue;
+                    },
                 };
                 let mut send_data = String::new();
-                send_data = self.make_http_header (url.get_url(Range::PATH|Range::PARAM|Range::QUERY), url.get_net_loc(), self.cookie.get_cookie(url));
+                send_data = self.make_http_header (
+                    url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 
+                    url.get_net_loc(), self.cookie_.get_cookie(url));
                 tcp_s.write(send_data.as_bytes());
-                self.recv_data (&tcp_s);
-                self.cookie.cookie_container.insert()
+                self.recv_data (&mut tcp_s);
+                self.cookie_.cookie_container.insert(url.get_url(0xFF), self.http_parser_.get_cookie());
             }
             if self.http_parser_.is_redirect() && !self.http_parser_.get_location().is_empty() {
                 url.update(self.http_parser_.get_location());
@@ -152,8 +158,8 @@ impl HttpSocketThread {
                     Err(why) => panic!("couldn't open {}: {}", display, why.description()),
                 };
                 out_file.write_all (self.http_parser_.get_body ().as_bytes()).unwrap();
-                html_parser.parse (self.http_parser_.get_body().to_string(), self.http_parser_.get_body().to_string().len());
-                self.url_q.insert (&url, html_parser.extract_link_url_list ());
+                html_parser.parse (self.http_parser_.get_body().to_string());
+                self.url_q.insert (&mut url, html_parser.extract_link_url_list ());
             }
             else {
                 error!("{} --> {}", url.url, self.get_err_msg());

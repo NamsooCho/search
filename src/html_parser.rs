@@ -8,6 +8,7 @@ use std::str;
 #[derive(PartialEq)] enum ParserType { NONE = 0, LINK_URL = 0x01, FRAME_SRC = 0x02, BODY_TEXT = 0x04, }
 #[derive(PartialEq)] enum ScriptState { S_INIT, S_SCRIPT, S_OUT1, S_OUT2, }
 
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)]
 pub struct HtmlParser {
     parser_type_: ParserType,
     state_: State,
@@ -330,5 +331,13 @@ impl HtmlParser {
             b = b + 1;
         }
         true
+    }
+
+    pub fn extract_link_url_list (&self) ->Vec<String> {
+        self.url_list_
+    }
+
+    pub fn extract_frame_url_list (&self) -> Vec<String> {
+        self.frame_
     }
 }
