@@ -41,7 +41,7 @@ impl Url {
         u
     }
 
-    pub fn compare_netloc (l_netloc: &String, r_netloc: &String) -> bool {
+    pub fn compare_netloc (&self, l_netloc: &String, r_netloc: &String) -> bool {
         if l_netloc != r_netloc {
             if ("www.".to_string() + l_netloc) != *r_netloc &&
                 *l_netloc != ("www.".to_string() + r_netloc) {
@@ -75,7 +75,7 @@ impl Url {
         self.frag_.clone()
     }
 
-    pub fn get_url (&self, range_: Range) -> Url {
+    pub fn get_url (&self, range_: Range) -> String {
         let range: u8 = range_ as u8;
         let mut url = String::new();
         if range & Range::SCHEME as u8 == Range::SCHEME as u8 && !self.scheme_.is_empty() {
@@ -104,9 +104,7 @@ impl Url {
         if range & Range::FRAGMENT as u8 == Range::FRAGMENT as u8 && !self.frag_.is_empty() {
             url = url + "#" + &self.frag_;
         }
-        let mut res_url = self.clone();
-        self.parse (&mut url, &mut res_url);
-        res_url
+        url
     }
 
     pub fn get_url_str (&self, range_: u8) -> String {
@@ -143,7 +141,7 @@ impl Url {
 
     pub fn empty (&self) -> bool {
         let range: Range = Range::ALL;
-        let url_str = self.get_url_str(range);
+        let url_str = self.get_url_str(range as u8);
         url_str.is_empty()
     }
 
@@ -163,7 +161,7 @@ impl Url {
         }
     }
 
-    fn parse (&self, url: &mut String, url_composer: &mut Url) -> bool {
+    pub fn parse (&self, url: &mut String, url_composer: &mut Url) -> bool {
         if url.is_empty() {
             return false;
         }
@@ -267,7 +265,7 @@ impl Url {
                 }
             }
         }
-        cur_composer.get_url (Range::ALL)
+        cur_composer
     }
 
     pub fn filter (&self) -> bool {
@@ -293,6 +291,8 @@ impl Url {
     }
 
     pub fn update (&self, new_url: String) {
-        *self = self.get_abs_path (self.get_url(), new_url.get_url());
+        let mut cur;
+        self.parse (&mut new_url, &mut cur);
+        *self = self.get_abs_path (&cur);
     }
 }

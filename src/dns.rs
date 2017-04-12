@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::net;
-use std::net::SocketAddrV4;
+use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr};
 
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)]
+#[derive(Debug, Clone,PartialEq,Eq)]
 pub struct Dns {
     cache_: HashMap<String, SocketAddrV4>,
 }
@@ -16,28 +16,26 @@ impl Dns {
     }
 
     pub fn get_sock_addr (&self, host: &String, addr: &mut SocketAddrV4) -> bool {
-        let mut sock_v4 = SocketAddrV4::new();
+        let mut sock_v4 = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
         let entry = match self.cache_.get (host) {
             Some(e) => {
                 *addr = e.clone();
             },
             None => {
-                for sock_v4 in net::lookup_host (&host)? {
+                let mut e;
+                for sock_v4 in net::lookup_host(&host).unwrap() {
                     match sock_v4 {
-                        Some(x) => {
-                            match x {
-                            SocketAddrV4::V4(x) => x,
-                            };
-                        },
-                        _ => return false,
+                        SocketAddr::V4(x) => { e = x; break; },
+                        SocketAddr::V6(_) => return false,
                     };
-                    *addr = sock_v4.clone();
-                    self.cache_.insert (host, sock_v4);
-                    break;
-                };
+                }
+                *addr = e.clone();
+                self.cache_.insert (host.clone(), e);
             },
         };
-
+        if sock_v4 == SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80) {
+            return false;
+        }
         true
     }
 }

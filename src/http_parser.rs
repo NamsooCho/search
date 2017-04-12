@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use cookie::Cookie;
-#[derive(PartialEq)] enum State { INIT, HEADER_PARTIAL, BODY_PARTIAL, }
-#[derive(PartialEq)] enum ChunkState { CHUNK_INIT, CHUNK_PARTIAL, }
-#[derive(PartialEq)] enum Method { GET, POST, RESPONSE, ERROR, }
+
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum State { INIT, HEADER_PARTIAL, BODY_PARTIAL, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ChunkState { CHUNK_INIT, CHUNK_PARTIAL, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum Method { GET, POST, RESPONSE, ERROR, }
 
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)]
 pub struct HttpParser {
@@ -17,7 +18,7 @@ pub struct HttpParser {
     chunk_size_: i32,
     host_: String,
     location_: String,
-    cookie_: Cookie,
+    cookie_: Vec<String>,
 }
 
 impl HttpParser {
@@ -34,7 +35,7 @@ impl HttpParser {
             chunk_size_: 0,
             host_: String::new(),
             location_: String::new(),
-            cookie_: Cookie::new(),
+            cookie_: Vec::new(),
         };
         h
     }
@@ -59,7 +60,7 @@ impl HttpParser {
         self.body_
     }
 
-    pub fn get_cookie (&self) -> Cookie {
+    pub fn get_cookie (&self) -> Vec<String> {
         self.cookie_
     }
 
@@ -121,7 +122,7 @@ impl HttpParser {
             'S' => {
                 if b + cookie.len() < e && cookie == String::from_utf8_lossy(&data[b..b+cookie.len()]) {
                     self.get_field_data (b, e, &mut temp);
-                    self.cookie_.push_back(temp.clone());
+                    self.cookie_.push(temp.clone());
                 }
             },
 
@@ -136,7 +137,9 @@ impl HttpParser {
 
             '\r' => {
                 return false;
-            }
+            },
+
+            _ => {return false;}
         }
         true
     }
@@ -337,10 +340,9 @@ impl HttpParser {
         }
     }
     
-    pub fn parse (&self, data_: &mut[u8]) {
-        let mut data = data_.as_bytes();
+    pub fn parse (&self, data: &mut[u8]) {
         match self.state_ {
-            State::INIT   => self.clear_parser (),
+            State::INIT   => self.clear (),
             State::HEADER_PARTIAL   => self.parse_header (&data),
             State::BODY_PARTIAL   => self.parse_body (&data),
         };

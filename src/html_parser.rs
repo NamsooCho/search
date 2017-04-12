@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 use std::str;
+use url_parser::Url;
 
 
-#[derive(PartialEq)] enum State { INIT, TAG, COMMENT, }
-#[derive(PartialEq)] enum TagType { A, FRAME, SCRIPT, BODY, BODY_END, }
-#[derive(PartialEq, Hash, Eq)] enum AttrType { HREF, SRC, UNKNOWN, }
-#[derive(PartialEq)] enum ParserType { NONE = 0, LINK_URL = 0x01, FRAME_SRC = 0x02, BODY_TEXT = 0x04, }
-#[derive(PartialEq)] enum ScriptState { S_INIT, S_SCRIPT, S_OUT1, S_OUT2, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum State { INIT, TAG, COMMENT, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum TagType { A, FRAME, SCRIPT, BODY, BODY_END, ERROR,}
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq,Hash)] enum AttrType { HREF, SRC, UNKNOWN, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ParserType { NONE = 0, LINK_URL = 0x01, FRAME_SRC = 0x02, BODY_TEXT = 0x04, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ScriptState { S_INIT, S_SCRIPT, S_OUT1, S_OUT2, }
 
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)]
+#[derive(Debug, Clone,PartialEq,Eq)]
 pub struct HtmlParser {
     parser_type_: ParserType,
     state_: State,
@@ -111,6 +112,7 @@ impl HtmlParser {
             "SCRIPT" => TagType::SCRIPT,
             "BODY" => TagType::BODY,
             "/BODY" => TagType::BODY_END,
+            &_ => TagType::ERROR
         };
         rlt
     }
@@ -282,6 +284,8 @@ impl HtmlParser {
                     self.is_body_ = false;
                 }
             },
+
+            TagType::ERROR => {}
         };
         self.state_ = State::INIT;
         tag_e

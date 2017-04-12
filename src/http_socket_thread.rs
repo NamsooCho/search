@@ -8,7 +8,7 @@ use std::net::SocketAddrV4;
 
 use sync_q::SyncQ;
 use url_parser::Url;
-use cookie_container::CookieContainer;
+use cookie::Cookie;
 use html_parser::HtmlParser;
 use http_parser::HttpParser;
 use dns::Dns;
@@ -20,14 +20,14 @@ pub struct HttpSocketThread {
     url_q: SyncQ,
     output_: String,
     redir_history: BTreeSet<Url>,
-    cookie_: CookieContainer,
+    cookie_: Cookie,
     dns_: Dns,
     http_parser_: HttpParser,
     err_: String,
 }
 
 impl HttpSocketThread {
-    pub fn new (cookies: &mut CookieContainer) -> HttpSocketThread {
+    pub fn new (cookies: &mut Cookie) -> HttpSocketThread {
         let mut sock = HttpSocketThread {
             continue_: true, 
             url_q: SyncQ::new(), 
@@ -125,7 +125,7 @@ impl HttpSocketThread {
                     url.get_net_loc(), self.cookie_.get_cookie(url));
                 tcp_s.write(send_data.as_bytes());
                 self.recv_data (&mut tcp_s);
-                self.cookie_.cookie_container.insert(url.get_url(0xFF), self.http_parser_.get_cookie());
+                self.cookie_.insert(&self.http_parser_.get_cookie(), &url);
             }
             if self.http_parser_.is_redirect() && !self.http_parser_.get_location().is_empty() {
                 url.update(self.http_parser_.get_location());
@@ -159,10 +159,10 @@ impl HttpSocketThread {
                 };
                 out_file.write_all (self.http_parser_.get_body ().as_bytes()).unwrap();
                 html_parser.parse (self.http_parser_.get_body().to_string());
-                self.url_q.insert (&mut url, html_parser.extract_link_url_list ());
+                self.url_q.insert (&mut url, &html_parser.extract_link_url_list ());
             }
             else {
-                error!("{} --> {}", url.url, self.get_err_msg());
+                error!("{} --> {}", url.get_url_str(0xFF), self.err_);
             }
         }
     }
