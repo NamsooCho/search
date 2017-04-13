@@ -290,8 +290,8 @@ impl Url {
         true
     }
 
-    pub fn update (&self, new_url: String) {
-        let mut cur;
+    pub fn update (&mut self, mut new_url: String) {
+        let mut cur = Url::new();
         self.parse (&mut new_url, &mut cur);
         *self = self.get_abs_path (&cur);
     }

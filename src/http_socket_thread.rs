@@ -4,7 +4,7 @@ use std::net::TcpStream;
 use std::error::Error;
 use std::collections::{BTreeSet};
 use std::io::prelude::*;
-use std::net::SocketAddrV4;
+use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr};
 
 use sync_q::SyncQ;
 use url_parser::Url;
@@ -27,13 +27,13 @@ pub struct HttpSocketThread {
 }
 
 impl HttpSocketThread {
-    pub fn new (cookies: &mut Cookie) -> HttpSocketThread {
+    pub fn new () -> HttpSocketThread {
         let mut sock = HttpSocketThread {
             continue_: true, 
             url_q: SyncQ::new(), 
             output_: "".to_string(), 
             redir_history: BTreeSet::new(), 
-            cookie_: *cookies,
+            cookie_: Cookie::new(),
             dns_: Dns::new(),
             http_parser_: HttpParser::new(),
             err_: String::new(),
@@ -68,7 +68,7 @@ impl HttpSocketThread {
         hdr
     }
 
-    fn recv_data (&self, sock: &mut TcpStream) -> bool {
+    fn recv_data (&mut self, sock: &mut TcpStream) -> bool {
         let mut data = Vec::new();
         let mut ret = 0;
         let mut recv_size = 0;
@@ -95,22 +95,22 @@ impl HttpSocketThread {
         self.http_parser_.is_ok()
     }
 
-    fn request (&mut self, url: &Url) -> bool {
+    fn request (&mut self, url: &mut Url) -> bool {
         if url.empty() {
             return false;
         }
 
         self.redir_history.clear ();
-        let err_: String = "".to_string();
-        let done: bool = false;
-        let ret: bool = false;
+        let mut err_: String = "".to_string();
+        let mut done: bool = false;
+        let mut ret: bool = false;
 
         while !done && err_.is_empty() {
             if !self.check_redir(&url) {
                 break;
             }
 
-            let mut addr;
+            let mut addr = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
             if self.dns_.get_sock_addr (&url.get_net_loc(), &mut addr) {
                 let mut tcp_s = match TcpStream::connect (addr) {
                     Ok(s) => s,
@@ -120,9 +120,10 @@ impl HttpSocketThread {
                     },
                 };
                 let mut send_data = String::new();
+                let cook = self.cookie_.get_cookie(url);
                 send_data = self.make_http_header (
                     url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 
-                    url.get_net_loc(), self.cookie_.get_cookie(url));
+                    url.get_net_loc(), cook);
                 tcp_s.write(send_data.as_bytes());
                 self.recv_data (&mut tcp_s);
                 self.cookie_.insert(&self.http_parser_.get_cookie(), &url);
@@ -138,7 +139,7 @@ impl HttpSocketThread {
     }
 
     fn thread_function (&mut self) {
-        let html_parser: HtmlParser = HtmlParser::new();
+        let mut html_parser: HtmlParser = HtmlParser::new();
 
         let mut html_cnt = 0;
 
@@ -147,8 +148,8 @@ impl HttpSocketThread {
                 break;
             }
             
-            let url: Url = self.url_q.get_next_url ();
-            if self.request (&url) {
+            let mut url: Url = self.url_q.get_next_url ();
+            if self.request (&mut url) {
                 self.output_ = self.output_.clone() + &html_cnt.to_string() + ".html";
                 html_cnt = html_cnt + 1;
                 let out_path = Path::new(&self.output_);
@@ -159,7 +160,7 @@ impl HttpSocketThread {
                 };
                 out_file.write_all (self.http_parser_.get_body ().as_bytes()).unwrap();
                 html_parser.parse (self.http_parser_.get_body().to_string());
-                self.url_q.insert (&mut url, &html_parser.extract_link_url_list ());
+                self.url_q.insert (&mut url, &mut html_parser.extract_link_url_list ());
             }
             else {
                 error!("{} --> {}", url.get_url_str(0xFF), self.err_);
@@ -167,9 +168,11 @@ impl HttpSocketThread {
         }
     }
 
-    pub fn initiate (&mut self) {
+    pub fn initiate (&mut self, queue: &mut SyncQ, cookie: &mut Cookie) {
         self.continue_ = true;
         self.redir_history = BTreeSet::new();
         self.thread_function ();
+        self.url_q = queue.clone();
+        self.cookie_ = cookie.clone();
     }
 }

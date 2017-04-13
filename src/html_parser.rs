@@ -21,7 +21,7 @@ pub struct HtmlParser {
 }
 
 impl HtmlParser {
-    fn clear (&self) {
+    fn clear (&mut self) {
         self.state_ = State::INIT;
         self.url_list_.clear();
         self.frame_.clear();
@@ -71,7 +71,7 @@ impl HtmlParser {
         p
     }
 
-    fn convert_latin_set (&self, data: &[u8], b: usize, e: usize, c: &char) -> usize {
+    fn convert_latin_set (&self, data: &[u8], b: usize, e: usize, c: &mut char) -> usize {
         let mut cur = b;
         let mut set_e = cur + 1;
 
@@ -117,7 +117,7 @@ impl HtmlParser {
         rlt
     }
 
-    fn parse_attribute (&self, data: &[u8], b: usize, e: usize, attr_list: &HashMap<AttrType, String>) -> usize {
+    fn parse_attribute (&self, data: &[u8], mut b: usize, e: usize, attr_list: &mut HashMap<AttrType, String>) -> usize {
         while b < e {
             while (data[b] as char).is_whitespace() {
                 b = b + 1;
@@ -172,14 +172,14 @@ impl HtmlParser {
 
     fn get_attr_value (&self, attr_list: &HashMap<AttrType, String>, attr_type: AttrType) -> String {
         let val = match attr_list.get(&attr_type) {
-            Some(x) => *x,
+            Some(x) => x.clone(),
             None => String::new(),
         };
 
         val
     }
 
-    fn remove_script (&self, data: &[u8], b: usize, e: usize) -> usize {
+    fn remove_script (&self, data: &[u8], mut b: usize, e: usize) -> usize {
         let mut state: ScriptState = ScriptState::S_INIT;
         for c in b..e {
             match state {
@@ -228,7 +228,7 @@ impl HtmlParser {
         b
     }
 
-    fn tag (&self, data: &[u8], b: usize) -> usize {
+    fn tag (&mut self, data: &[u8], mut b: usize) -> usize {
         let prev = b;
         let e = data.len();
 
@@ -250,8 +250,8 @@ impl HtmlParser {
 
         match self.get_tag_type (data, prev, b) {
             TagType::A => {
-                if self.parser_type_ as u8 & ParserType::LINK_URL as u8 > 0 {
-                    b = self.parse_attribute (data, b, tag_e, &attr_list);
+                if self.parser_type_.clone() as u8 & ParserType::LINK_URL as u8 > 0 {
+                    b = self.parse_attribute (data, b, tag_e, &mut attr_list);
                     val = self.get_attr_value (&attr_list, AttrType::HREF);
                     if !val.is_empty() {
                         self.url_list_.push (val);
@@ -260,8 +260,8 @@ impl HtmlParser {
             },
 
             TagType::FRAME => {
-                if self.parser_type_ as u8 & ParserType::FRAME_SRC as u8 > 0 {
-                    b = self.parse_attribute (data, b, tag_e, &attr_list);
+                if self.parser_type_.clone() as u8 & ParserType::FRAME_SRC as u8 > 0 {
+                    b = self.parse_attribute (data, b, tag_e, &mut attr_list);
                     val = self.get_attr_value (&attr_list, AttrType::SRC);
                     if !val.is_empty() {
                         self.frame_.push (val);
@@ -274,13 +274,13 @@ impl HtmlParser {
             },
 
             TagType::BODY => {
-                if self.parser_type_ as u8 & ParserType::BODY_TEXT as u8 > 0 {
+                if self.parser_type_.clone() as u8 & ParserType::BODY_TEXT as u8 > 0 {
                     self.is_body_ = true;
                 }
             },
 
             TagType::BODY_END => {
-                if self.is_body_ {
+                if self.is_body_.clone() {
                     self.is_body_ = false;
                 }
             },
@@ -291,7 +291,7 @@ impl HtmlParser {
         tag_e
     }
 
-    pub fn parse (&self, html: String) -> bool {
+    pub fn parse (&mut self, html: String) -> bool {
         self.clear();
         let mut data = html.as_bytes();
         let mut b: usize = 0;
@@ -304,9 +304,9 @@ impl HtmlParser {
                         self.state_ = State::TAG;
                     }
                     else if self.is_body_ {
-                        let c: char = data[b].clone() as char;
+                        let mut c: char = data[b].clone() as char;
                         if c == '&' {
-                            b = self.convert_latin_set (data, b, e, &c);
+                            b = self.convert_latin_set (data, b, e, &mut c);
                         }
                         let mut temp = self.plain_text_.clone();
                         if !c.is_whitespace() || self.plain_text_.is_empty() || !temp.pop().unwrap().is_whitespace() {
@@ -338,10 +338,10 @@ impl HtmlParser {
     }
 
     pub fn extract_link_url_list (&self) ->Vec<String> {
-        self.url_list_
+        self.url_list_.clone()
     }
 
     pub fn extract_frame_url_list (&self) -> Vec<String> {
-        self.frame_
+        self.frame_.clone()
     }
 }

@@ -15,27 +15,29 @@ impl Dns {
         d
     }
 
-    pub fn get_sock_addr (&self, host: &String, addr: &mut SocketAddrV4) -> bool {
+    pub fn get_sock_addr (&mut self, host: &String, addr: &mut SocketAddrV4) -> bool {
         let mut sock_v4 = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
         let entry = match self.cache_.get (host) {
             Some(e) => {
                 *addr = e.clone();
+                return true;
             },
             None => {
-                let mut e;
-                for sock_v4 in net::lookup_host(&host).unwrap() {
-                    match sock_v4 {
+                let mut e = sock_v4.clone();
+                for sock_v4_6 in net::lookup_host(&host).unwrap() {
+                    match sock_v4_6 {
                         SocketAddr::V4(x) => { e = x; break; },
-                        SocketAddr::V6(_) => return false,
+                        SocketAddr::V6(_) => { *addr = sock_v4; return false; } ,
                     };
                 }
                 *addr = e.clone();
-                self.cache_.insert (host.clone(), e);
             },
         };
         if sock_v4 == SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80) {
+            *addr = sock_v4;
             return false;
         }
+        self.cache_.insert (host.clone(), addr.clone());
         true
     }
 }

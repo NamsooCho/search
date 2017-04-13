@@ -22,6 +22,8 @@ mod dns;
 
 use http_socket_thread::HttpSocketThread;
 use cookie::Cookie;
+use std::sync::{Arc,Mutex};
+use sync_q::SyncQ;
 
 struct Args {
     q_limit: u32,
@@ -97,12 +99,17 @@ fn main() {
     info!("crawling start...");
     let mut children = vec![];
     let mut sock_arr = vec![];
-    let mut cookie = Cookie::new();
+    let mut cookie_ = Arc::new(Mutex::new(Cookie::new()));
+    let mut queue_ = Arc::new(Mutex::new(SyncQ::new()));
     for i in 0..arg.sock_cnt {
-        let mut sock = HttpSocketThread::new(&mut cookie);
+        let cookie = cookie_.clone();
+        let queue = queue_.clone();
+        let mut sock = HttpSocketThread::new();
         sock_arr.push(sock.clone());
         children.push(thread::spawn(move || {
-            sock.initiate();
+            let mut cookie = cookie.lock().unwrap();
+            let mut queue = queue.lock().unwrap();
+            sock.initiate(&mut queue, &mut cookie);
         }));
     }
 

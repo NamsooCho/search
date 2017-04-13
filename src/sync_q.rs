@@ -21,16 +21,16 @@ impl SyncQ {
         self.url.pop_front().unwrap()
     }
 
-    pub fn insert (&mut self,  base_url: &mut Url, urlList: &Vec<String>) {
-        for elem in urlList.iter() {
-            let url: Url;
+    pub fn insert (&mut self,  base_url: &mut Url, urlList: &mut Vec<String>) {
+        for mut elem in urlList.iter_mut() {
+            let mut url: Url = Url::new();
             base_url.parse(&mut elem, &mut url);
             base_url.get_abs_path(&url);
             if !url.filter() {
                 continue;
             }
 
-            let mut temp: Url;
+            let mut temp: Url = Url::new();
             url.parse(&mut url.get_url(Range::from_u8(Range::SCHEME as u8 | Range::NETLOC as u8 | Range::PATH as u8).unwrap()), &mut temp);
             if !self.url_history.contains(&temp) {
                 self.url_history.insert(temp.clone());

@@ -18,7 +18,7 @@ pub struct Cookie {
 }
 
 impl Clone for Cookie {
-    fn clone(&self) -> Cookie { *self }
+    fn clone(&self) -> Cookie { self.clone() }
 }
 
 impl fmt::Debug for Cookie {
@@ -39,8 +39,8 @@ impl Cookie {
         
     }
 
-    pub fn insert (&self, cookie_arr: &Vec<String>, url: &Url) {
-        for c in cookie_arr.iter_mut() {
+    pub fn insert (&mut self, cookie_arr: &Vec<String>, url: &Url) {
+        for c in cookie_arr.iter() {
             self.parse (&c, &url);
         }
     }
@@ -56,14 +56,14 @@ impl Cookie {
         expire < now
     }
 
-    pub fn get_cookie (&self, url: &Url) -> String {
+    pub fn get_cookie (&mut self, url: &Url) -> String {
         let mut result = String::new();
 
         if url.empty() {
             return result;
         }
 
-        for (key, value) in self.cookie_.iter_mut() {
+        for (key, value) in self.cookie_.clone().iter_mut() {
             if (url.compare_netloc(&value.domain_, &url.get_net_loc()) || !(&url.get_net_loc()).contains(&value.domain_)) 
                 && !(&url.get_path()).contains(&value.path_) {
                 if value.expires_.is_empty() || !self.is_expired (&value.expires_) {
@@ -76,7 +76,8 @@ impl Cookie {
             }
         }
         if !result.is_empty() {
-            result.remove(result.rfind(";").unwrap());
+            let pos = result.rfind(";").unwrap();
+            result.remove(pos);
         }
         result
     }
@@ -115,7 +116,7 @@ impl Cookie {
         return "".to_string();
     }
 
-    pub fn parse (&self, cookie: &String, url: &Url) {
+    pub fn parse (&mut self, cookie: &String, url: &Url) {
         if cookie.is_empty() {
             return;
         }
@@ -163,8 +164,8 @@ impl Cookie {
             self.cookie_.insert (name, cookie_info);
         }
         else {
-            let mut g = self.cookie_.get_vec(&name).unwrap ();
-            for v in &mut g.iter_mut() {
+            let g = self.cookie_.get_vec_mut(&name).unwrap ();
+            for v in g.iter_mut() {
                 if v.path_ == cookie_info.path_ && url.compare_netloc (&v.domain_, &cookie_info.domain_) {
                     v.value_ = cookie_info.value_;
                     break;

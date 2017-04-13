@@ -40,7 +40,7 @@ impl HttpParser {
         h
     }
 
-    pub fn clear (&self) {
+    pub fn clear (&mut self) {
         self.state_ = State::INIT;
         self.chunk_state_ = ChunkState::CHUNK_INIT;
         self.rep_code_ = 0;
@@ -57,21 +57,22 @@ impl HttpParser {
     }
 
     pub fn get_body (&self) -> String {
-        self.body_
+        self.body_.clone()
     }
 
     pub fn get_cookie (&self) -> Vec<String> {
-        self.cookie_
+        self.cookie_.clone()
     }
 
-    pub fn get_location (&self) -> String { self.location_ }
+    pub fn get_location (&self) -> String { self.location_.clone() }
     pub fn is_ok(&self) -> bool { return self.rep_code_ >= 200 && self.rep_code_ < 300; }
     pub fn is_redirect(&self) -> bool { return self.rep_code_ >= 300 && self.rep_code_ < 400; }
     pub fn is_partial(&self) -> bool { return self.state_ != State::INIT; }
     pub fn get_rep_code(&self) -> usize { self.rep_code_ }
 
-    fn get_field_data (&self, b: usize, e: usize, temp: &mut String) {
-        let data = temp.as_bytes();
+    fn get_field_data (&self, mut b: usize, e: usize, temp: &mut String) {
+        let data_ = temp.clone();
+        let data = data_.as_bytes();
         let mut rlt = Vec::new();
 
         b = b + data.len();
@@ -87,7 +88,7 @@ impl HttpParser {
         *temp = String::from_utf8(rlt).unwrap();
     }
 
-    fn parse_field (&self, data: &[u8]) -> bool {
+    fn parse_field (&mut self, data: &[u8]) -> bool {
         let con_len = "content-length".to_string();
         let host = "host".to_string();
         let location = "location".to_string();
@@ -109,13 +110,13 @@ impl HttpParser {
 
             'H' => {
                 if b + host.len() < e && host == String::from_utf8_lossy(&data[b..b+host.len()]) {
-                    self.get_field_data (b, e, &mut self.host_);
+                    self.get_field_data (b, e, &mut self.host_.clone());
                 }
             },
 
             'L' => {
                 if b + location.len() < e && location == String::from_utf8_lossy(&data[b..b+location.len()]) {
-                    self.get_field_data (b, e, &mut self.location_);
+                    self.get_field_data (b, e, &mut self.location_.clone());
                 }
             },
 
@@ -144,7 +145,7 @@ impl HttpParser {
         true
     }
 
-    fn parse_header (&self, data: &[u8]) {
+    fn parse_header (&mut self, data: &[u8]) {
         let mut hdr_partial = true;
         let mut b = 0;
         let mut e = data.len();
@@ -190,27 +191,35 @@ impl HttpParser {
         }
     }
 
-    fn parse_method (&self, data: &[u8]) -> Method {
+    fn parse_method (&mut self, data: &[u8]) -> Method {
         let mut method_list = HashMap::new();
 
         method_list.insert ("GET".to_string(), Method::GET);
         method_list.insert ("POST".to_string(), Method::POST);
         method_list.insert ("HTTP".to_string(), Method::RESPONSE);
 
-        let mut iter = String::from_utf8_lossy(&data).split_whitespace();
-        let mut method: String = iter.next().unwrap().to_uppercase();
+        let data_str = String::from_utf8_lossy(&data);
+        let mut split_iter = data_str.split_whitespace();
+        let mut method: String = match split_iter.next() {
+            Some(x) => x.to_uppercase(),
+            None => "".to_string()
+        };
+
         let code: Method = match method_list.get(&method) {
-            Some(x) => *x,
+            Some(x) => x.clone(),
             None => Method::ERROR,
         };
 
         if code == Method::RESPONSE {
-            self.rep_code_ = iter.next().unwrap().parse().unwrap();
+            self.rep_code_ = match split_iter.next() {
+                Some(x) => x.to_string().parse().unwrap(),
+                None => 404
+            };
         }
         return code;
     }
 
-    fn get_chunk_size (&self, data: &[u8]) -> usize {
+    fn get_chunk_size (&mut self, data: &[u8]) -> usize {
         let mut cur: usize = 0;
         let mut prev: usize = 0;
         for i in 0..data.len() as usize {
@@ -242,7 +251,7 @@ impl HttpParser {
         cur
     }
     
-    fn append_body (&self, data: &[u8], mut b:  usize) -> usize {
+    fn append_body (&mut self, data: &[u8], mut b:  usize) -> usize {
         if self.chunk_size_ < 0 {
             self.buf_.push_str (&String::from_utf8_lossy(&data[b..]));
             return data.len() as usize;
@@ -265,7 +274,7 @@ impl HttpParser {
         b
     }
 
-    fn parse_chunk (&self, data: &[u8]) {
+    fn parse_chunk (&mut self, data: &[u8]) {
         let mut b = 0;
         let mut e = b + data.len() as usize;
 
@@ -299,7 +308,7 @@ impl HttpParser {
                         if b < e {
                             b = b + 2;
                             self.buf_.push_str (&String::from_utf8_lossy(&data[prev..b]));
-                            let temp = self.buf_;
+                            let temp = self.buf_.clone();
                             self.get_chunk_size (temp.as_bytes());
                             self.buf_.clear();
                             if self.chunk_size_ > 0 {
@@ -328,7 +337,7 @@ impl HttpParser {
         }
     }
 
-    fn parse_body (&self, data: &[u8]) {
+    fn parse_body (&mut self, data: &[u8]) {
         if self.is_chunk_ {
             self.parse_chunk (data);
         }
@@ -340,7 +349,7 @@ impl HttpParser {
         }
     }
     
-    pub fn parse (&self, data: &mut[u8]) {
+    pub fn parse (&mut self, data: &mut[u8]) {
         match self.state_ {
             State::INIT   => self.clear (),
             State::HEADER_PARTIAL   => self.parse_header (&data),
