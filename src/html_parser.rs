@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::str;
-use url_parser::Url;
+//use url_parser::Url;
 
 
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum State { INIT, TAG, COMMENT, }
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum TagType { A, FRAME, SCRIPT, BODY, BODY_END, ERROR,}
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq,Hash)] enum AttrType { HREF, SRC, UNKNOWN, }
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ParserType { NONE = 0, LINK_URL = 0x01, FRAME_SRC = 0x02, BODY_TEXT = 0x04, }
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ScriptState { S_INIT, S_SCRIPT, S_OUT1, S_OUT2, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ScriptState { S_INIT, S_SCRIPT, S_OUT1, S_OUT2 }
 
 #[derive(Debug, Clone,PartialEq,Eq)]
 pub struct HtmlParser {
@@ -80,7 +80,7 @@ impl HtmlParser {
         }
 
         if set_e != e && !(data[set_e] as char).is_whitespace() {
-            let mut code: u8 = 0;
+            let code: u8;
             if data[cur] == '#' as u8 {
                 cur = cur + 1;
                 code = str::from_utf8(&data[cur..set_e]).unwrap().to_string().parse().unwrap();
@@ -123,7 +123,7 @@ impl HtmlParser {
                 b = b + 1;
             }
 
-            let mut prev = b;
+            let prev = b;
 
             while data[b] != '=' as u8 && !(data[b] as char).is_whitespace() {
                 b = b + 1;
@@ -144,10 +144,10 @@ impl HtmlParser {
                 break;
             }
 
-            let mut value = String::new();
-            let mut val_b = 0;
+            let value;
+            let val_b;
             if data[b] == '"' as u8 || data[b] == '\'' as u8 {
-                let sep = data[b];
+                //let sep = data[b];
                 val_b = b + 1;
                 while b < e && (data[b] as char).is_whitespace() {
                     b = b + 1;
@@ -181,7 +181,7 @@ impl HtmlParser {
 
     fn remove_script (&self, data: &[u8], mut b: usize, e: usize) -> usize {
         let mut state: ScriptState = ScriptState::S_INIT;
-        for c in b..e {
+        for _ in b..e {
             match state {
                 ScriptState::S_INIT => {
                     if data[b] == '<' as u8 {
@@ -208,7 +208,7 @@ impl HtmlParser {
                 },
 
                 ScriptState::S_OUT2 => {
-                    let mut prev = b;
+                    let prev = b;
                     while b < e && (data[b] as char).is_alphanumeric() {
                         b = b + 1;
                     }
@@ -246,12 +246,12 @@ impl HtmlParser {
         }
 
         let mut attr_list = HashMap::new();
-        let mut val = String::new();
+        let val;
 
         match self.get_tag_type (data, prev, b) {
             TagType::A => {
                 if self.parser_type_.clone() as u8 & ParserType::LINK_URL as u8 > 0 {
-                    b = self.parse_attribute (data, b, tag_e, &mut attr_list);
+                    self.parse_attribute (data, b, tag_e, &mut attr_list);
                     val = self.get_attr_value (&attr_list, AttrType::HREF);
                     if !val.is_empty() {
                         self.url_list_.push (val);
@@ -261,7 +261,7 @@ impl HtmlParser {
 
             TagType::FRAME => {
                 if self.parser_type_.clone() as u8 & ParserType::FRAME_SRC as u8 > 0 {
-                    b = self.parse_attribute (data, b, tag_e, &mut attr_list);
+                    self.parse_attribute (data, b, tag_e, &mut attr_list);
                     val = self.get_attr_value (&attr_list, AttrType::SRC);
                     if !val.is_empty() {
                         self.frame_.push (val);
@@ -293,7 +293,7 @@ impl HtmlParser {
 
     pub fn parse (&mut self, html: String) -> bool {
         self.clear();
-        let mut data = html.as_bytes();
+        let data = html.as_bytes();
         let mut b: usize = 0;
         let e: usize = b + data.len();
 

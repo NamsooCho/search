@@ -70,8 +70,8 @@ impl HttpSocketThread {
 
     fn recv_data (&mut self, sock: &mut TcpStream) -> bool {
         let mut data = Vec::new();
-        let mut ret = 0;
-        let mut recv_size = 0;
+        //let mut ret = 0;
+        let mut recv_size;
         let mut done = false;
 
         self.http_parser_.clear();
@@ -103,7 +103,7 @@ impl HttpSocketThread {
         self.redir_history.clear ();
         let mut err_: String = "".to_string();
         let mut done: bool = false;
-        let mut ret: bool = false;
+        //let mut ret: bool = false;
 
         while !done && err_.is_empty() {
             if !self.check_redir(&url) {
@@ -119,7 +119,7 @@ impl HttpSocketThread {
                         continue;
                     },
                 };
-                let mut send_data = String::new();
+                let mut send_data;
                 let cook = self.cookie_.get_cookie(url);
                 send_data = self.make_http_header (
                     url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 

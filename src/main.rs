@@ -26,11 +26,11 @@ use std::sync::{Arc,Mutex};
 use sync_q::SyncQ;
 
 struct Args {
-    q_limit: u32,
-    seed: String,
-    out_dir: String,
-    timeout: u32,
-    sock_cnt: u32,
+    q_limit_: u32,
+    seed_: String,
+    out_dir_: String,
+    timeout_: u32,
+    sock_cnt_: u32,
 }
 
 fn print_usage(program: &str, opts: Options) {
@@ -39,9 +39,6 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 fn main() {
-    //let mut sockArr: Vec<HttpSocketThread> = Vec::new();
-    let mut i = 0;
-
     env_logger::init().unwrap();
 
     let args: Vec<String> = env::args().collect();
@@ -89,19 +86,19 @@ fn main() {
     };
 
     let arg: Args = Args {
-        q_limit: q_limit,
-        seed: seed,
-        out_dir: out_dir,
-        timeout: timeout,
-        sock_cnt: sock_cnt,
+        q_limit_: q_limit,
+        seed_: seed,
+        out_dir_: out_dir,
+        timeout_: timeout,
+        sock_cnt_: sock_cnt,
         };
 
     info!("crawling start...");
     let mut children = vec![];
     let mut sock_arr = vec![];
-    let mut cookie_ = Arc::new(Mutex::new(Cookie::new()));
-    let mut queue_ = Arc::new(Mutex::new(SyncQ::new()));
-    for i in 0..arg.sock_cnt {
+    let cookie_ = Arc::new(Mutex::new(Cookie::new()));
+    let queue_ = Arc::new(Mutex::new(SyncQ::new()));
+    for _ in 0..arg.sock_cnt_ {
         let cookie = cookie_.clone();
         let queue = queue_.clone();
         let mut sock = HttpSocketThread::new();

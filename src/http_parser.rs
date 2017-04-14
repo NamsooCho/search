@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use cookie::Cookie;
+//use cookie::Cookie;
 
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum State { INIT, HEADER_PARTIAL, BODY_PARTIAL, }
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ChunkState { CHUNK_INIT, CHUNK_PARTIAL, }
@@ -97,7 +97,7 @@ impl HttpParser {
         let chunk = "chunked".to_string();
 
         let mut temp = String::new();
-        let mut b: usize = 0;
+        let b: usize = 0;
         let e = data.len() as usize;
 
         match (data[b] as char).to_uppercase().next().unwrap() {
@@ -147,13 +147,13 @@ impl HttpParser {
 
     fn parse_header (&mut self, data: &[u8]) {
         let mut hdr_partial = true;
-        let mut b = 0;
-        let mut e = data.len();
+        let b = 0;
+        let e = data.len();
 
         let mut prev = b;
         let mut cur = b;
 
-        for i in 0..e {
+        for _ in 0..e {
             if prev != b && data[cur - 1] == '\r' as u8 && data[cur] == '\n' as u8 {
                 if !self.buf_.is_empty() {
                     self.buf_.push_str (&String::from_utf8_lossy(&data[prev..cur]));
@@ -200,7 +200,7 @@ impl HttpParser {
 
         let data_str = String::from_utf8_lossy(&data);
         let mut split_iter = data_str.split_whitespace();
-        let mut method: String = match split_iter.next() {
+        let method: String = match split_iter.next() {
             Some(x) => x.to_uppercase(),
             None => "".to_string()
         };
@@ -276,7 +276,7 @@ impl HttpParser {
 
     fn parse_chunk (&mut self, data: &[u8]) {
         let mut b = 0;
-        let mut e = b + data.len() as usize;
+        let e = b + data.len() as usize;
 
         while b < e {
             if self.chunk_state_ == ChunkState::CHUNK_INIT {
@@ -301,7 +301,7 @@ impl HttpParser {
                 }
                 else {
                     if self.buf_.len() as usize != 0 {
-                        let mut prev = b;
+                        let prev = b;
                         while b < e && data[b] != ('\r' as u8) && data[b+1] != ('\n' as u8) {
                             b = b + 1;
                         }

@@ -1,5 +1,5 @@
 use std::mem;
-use std::ops::BitAnd;
+//use std::ops::BitAnd;
 use std::clone::Clone;
 
 const DEFAULT_PORT: u16 = 80;
@@ -223,7 +223,7 @@ impl Url {
             return cur_url.clone();
         }
 
-        let mut base_composer = self.clone();
+        let base_composer = self.clone();
         let mut cur_composer = cur_url.clone();
         let cur_path = cur_composer.path_.clone();
 

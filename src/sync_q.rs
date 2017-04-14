@@ -21,8 +21,8 @@ impl SyncQ {
         self.url.pop_front().unwrap()
     }
 
-    pub fn insert (&mut self,  base_url: &mut Url, urlList: &mut Vec<String>) {
-        for mut elem in urlList.iter_mut() {
+    pub fn insert (&mut self,  base_url: &mut Url, url_list: &mut Vec<String>) {
+        for mut elem in url_list.iter_mut() {
             let mut url: Url = Url::new();
             base_url.parse(&mut elem, &mut url);
             base_url.get_abs_path(&url);

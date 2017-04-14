@@ -18,7 +18,7 @@ pub struct Cookie {
 }
 
 impl Clone for Cookie {
-    fn clone(&self) -> Cookie { self.clone() }
+    fn clone(&self) -> Cookie { Cookie {cookie_: self.cookie_.clone()} }
 }
 
 impl fmt::Debug for Cookie {
@@ -29,7 +29,7 @@ impl fmt::Debug for Cookie {
 
 impl Cookie {
     pub fn new() -> Cookie {
-        let mut c = Cookie {
+        let c = Cookie {
             cookie_: MultiMap::new(),
         };
         c
@@ -83,8 +83,8 @@ impl Cookie {
     }
 
     fn search_cookie_value (&self, cookie: &String, field: &String) -> String {
-        let mut b_pos = 0;
-        let mut e_pos = 0;
+        let mut b_pos;
+        let e_pos;
 
         b_pos = match (&cookie).find (&*field) {
             Some(p) => p,
@@ -140,7 +140,7 @@ impl Cookie {
             domain_: "".to_string(),
             secure_: "".to_string(),
         };
-        let mut name = cookie[a..a+b].to_string();
+        let name = cookie[a..a+b].to_string();
         cookie_info.value_ = self.search_cookie_value(&cookie, &name);
         cookie_info.expires_ = self.search_cookie_value(&cookie, &"expires".to_string());
         cookie_info.path_ = self.search_cookie_value(&cookie, &"path".to_string());
