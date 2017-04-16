@@ -27,13 +27,13 @@ pub struct HttpSocketThread {
 }
 
 impl HttpSocketThread {
-    pub fn new () -> HttpSocketThread {
+    pub fn new (sync_q: &mut SyncQ, cookie: &mut Cookie) -> HttpSocketThread {
         let mut sock = HttpSocketThread {
             continue_: true, 
-            url_q: SyncQ::new(), 
+            url_q: sync_q.clone(), 
             output_: "".to_string(), 
             redir_history: BTreeSet::new(), 
-            cookie_: Cookie::new(),
+            cookie_: cookie.clone(),
             dns_: Dns::new(),
             http_parser_: HttpParser::new(),
             err_: String::new(),
@@ -171,8 +171,8 @@ impl HttpSocketThread {
     pub fn initiate (&mut self, queue: &mut SyncQ, cookie: &mut Cookie) {
         self.continue_ = true;
         self.redir_history = BTreeSet::new();
-        self.thread_function ();
         self.url_q = queue.clone();
         self.cookie_ = cookie.clone();
+        self.thread_function ();
     }
 }

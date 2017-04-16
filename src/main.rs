@@ -97,15 +97,19 @@ fn main() {
     let mut children = vec![];
     let mut sock_arr = vec![];
     let cookie_ = Arc::new(Mutex::new(Cookie::new()));
-    let queue_ = Arc::new(Mutex::new(SyncQ::new()));
+    let queue_ = Arc::new(Mutex::new(SyncQ::new(&arg.seed_, q_limit)));
     for _ in 0..arg.sock_cnt_ {
-        let cookie = cookie_.clone();
-        let queue = queue_.clone();
-        let mut sock = HttpSocketThread::new();
+        let cookie_c = cookie_.clone();
+        let queue_c = queue_.clone();
+        let mut cookie = cookie_c.lock().unwrap();
+        let mut queue = queue_c.lock().unwrap();
+        let mut sock = HttpSocketThread::new(&mut queue, &mut cookie);
         sock_arr.push(sock.clone());
+        let cookie_ = cookie_.clone();
+        let queue_ = queue_.clone();
         children.push(thread::spawn(move || {
-            let mut cookie = cookie.lock().unwrap();
-            let mut queue = queue.lock().unwrap();
+            let mut cookie = cookie_.lock().unwrap();
+            let mut queue = queue_.lock().unwrap();
             sock.initiate(&mut queue, &mut cookie);
         }));
     }

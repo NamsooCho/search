@@ -6,15 +6,27 @@ use num::FromPrimitive;
 pub struct SyncQ {
     url: VecDeque<Url>,
     url_history: BTreeSet<Url>,
+    limit_: u32
 }
 
 impl SyncQ {
-    pub fn new () -> SyncQ {
-        SyncQ{url: VecDeque::new(), url_history: BTreeSet::new()}
+    pub fn new (seed: &String, limit: u32) -> SyncQ {
+        let mut s = SyncQ {
+            url: VecDeque::new(), 
+            url_history: BTreeSet::new(),
+            limit_: 0
+        };
+        let parser = Url::new();
+        let mut url = Url::new();
+        parser.parse(&mut seed.clone(), &mut url);
+        s.url_history.insert(url.clone());
+        s.url.push_back(url);
+        s.limit_ = limit;
+        s
     }
 
     pub fn full (&self) -> bool {
-        true
+        self.url.len() as u32 > self.limit_
     }
 
     pub fn get_next_url (&mut self) -> Url {
