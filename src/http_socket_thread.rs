@@ -112,10 +112,12 @@ impl HttpSocketThread {
 
             let mut addr = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
             if self.dns_.get_sock_addr (&url.get_net_loc(), &mut addr) {
-                let mut tcp_s = match TcpStream::connect (addr) {
+                let ip = addr.ip().octets();
+                let port = 80;
+                let mut tcp_s = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
                     Ok(s) => s,
                     _ => {
-                        err_ = "fail to connect".to_string();
+                        err_ = format!("\"{}.{}.{}.{}:{}\"",ip[0],ip[1],ip[2],ip[3],port).to_string();
                         continue;
                     },
                 };

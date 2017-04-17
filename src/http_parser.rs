@@ -351,7 +351,7 @@ impl HttpParser {
     
     pub fn parse (&mut self, data: &mut[u8]) {
         match self.state_ {
-            State::INIT   => self.clear (),
+            State::INIT   => { self.clear (); self.parse_header (&data); },
             State::HEADER_PARTIAL   => self.parse_header (&data),
             State::BODY_PARTIAL   => self.parse_body (&data),
         };

@@ -5,7 +5,7 @@
         "request": "launch",
         "name": "Debug",
         "program": "${workspaceRoot}/target/debug/search",
-        "args": ["-swww.naver.com", "-c1"],
+        "args": ["-swww.ibric.org/trend/", "-c1"],
         "cwd": "${workspaceRoot}",
         "preLaunchTask": "cargo",
         "sourceLanguages": ["rust"],

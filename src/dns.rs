@@ -16,7 +16,7 @@ impl Dns {
     }
 
     pub fn get_sock_addr (&mut self, host: &String, addr: &mut SocketAddrV4) -> bool {
-        let sock_v4 = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
+        let mut sock_v4 = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
         match self.cache_.get (host) {
             Some(e) => {
                 *addr = e.clone();
@@ -31,6 +31,7 @@ impl Dns {
                     };
                 }
                 *addr = e.clone();
+                sock_v4 = e;
             },
         };
         if sock_v4 == SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80) {

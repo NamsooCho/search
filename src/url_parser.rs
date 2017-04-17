@@ -177,7 +177,7 @@ impl Url {
 
         if 0 != pos {
             url_composer.scheme_ = url[..pos].to_lowercase();
-            url.drain(..pos);
+            url.drain(..pos+1);
         }
 
         let pos = match url.find("//") {
