@@ -70,12 +70,12 @@ impl HttpParser {
     pub fn is_partial(&self) -> bool { return self.state_ != State::INIT; }
     pub fn get_rep_code(&self) -> usize { self.rep_code_ }
 
-    fn get_field_data (&self, mut b: usize, e: usize, temp: &mut String) {
-        let data_ = temp.clone();
-        let data = data_.as_bytes();
+    fn get_field_data (&self, data: &[u8], mut b: usize, e: usize, temp: &mut String) {
+        //let data_ = data.clone();
+        //let data = (*data_).as_bytes();
         let mut rlt = Vec::new();
 
-        b = b + data.len();
+        //b = b + data.len();
         while b < e && (data[b] == ':' as u8 || data[b] == ' ' as u8) {
             b = b + 1;
         }
@@ -100,36 +100,40 @@ impl HttpParser {
         let b: usize = 0;
         let e = data.len() as usize;
 
+        if e == 0 {
+            return true;
+        }
+        
         match (data[b] as char).to_uppercase().next().unwrap() {
             'C' => {
-                if b + con_len.len() < e && con_len == String::from_utf8_lossy(&data[b..b+con_len.len()]) {
-                    self.get_field_data (b, e, &mut temp);
+                if b + con_len.len() < e && con_len == String::from_utf8_lossy(&data[b..b+con_len.len()]).to_lowercase() {
+                    self.get_field_data (data, b + con_len.len(), e, &mut temp);
                     self.contents_len_ = temp.parse().unwrap();
                 }
             },
 
             'H' => {
-                if b + host.len() < e && host == String::from_utf8_lossy(&data[b..b+host.len()]) {
-                    self.get_field_data (b, e, &mut self.host_.clone());
+                if b + host.len() < e && host == String::from_utf8_lossy(&data[b..b+host.len()]).to_lowercase() {
+                    self.get_field_data (data, b+ host.len(), e, &mut self.host_.clone());
                 }
             },
 
             'L' => {
-                if b + location.len() < e && location == String::from_utf8_lossy(&data[b..b+location.len()]) {
-                    self.get_field_data (b, e, &mut self.location_.clone());
+                if b + location.len() < e && location == String::from_utf8_lossy(&data[b..b+location.len()]).to_lowercase() {
+                    self.get_field_data (data, b+ location.len(), e, &mut self.location_.clone());
                 }
             },
 
             'S' => {
-                if b + cookie.len() < e && cookie == String::from_utf8_lossy(&data[b..b+cookie.len()]) {
-                    self.get_field_data (b, e, &mut temp);
+                if b + cookie.len() < e && cookie == String::from_utf8_lossy(&data[b..b+cookie.len()]).to_lowercase() {
+                    self.get_field_data (data, b+ cookie.len(), e, &mut temp);
                     self.cookie_.push(temp.clone());
                 }
             },
 
             'T' => {
-                if b + trans_enc.len() < e && trans_enc == String::from_utf8_lossy(&data[b..b+trans_enc.len()]) {
-                    self.get_field_data (b, e, &mut temp);
+                if b + trans_enc.len() < e && trans_enc == String::from_utf8_lossy(&data[b..b+trans_enc.len()]).to_lowercase() {
+                    self.get_field_data (data, b+ trans_enc.len(), e, &mut temp);
                     if chunk == temp {
                         self.is_chunk_ = true;
                     }
@@ -153,8 +157,8 @@ impl HttpParser {
         let mut prev = b;
         let mut cur = b;
 
-        for _ in 0..e {
-            if prev != b && data[cur - 1] == '\r' as u8 && data[cur] == '\n' as u8 {
+        while hdr_partial && cur != e {
+            if cur != b && data[cur - 1] == '\r' as u8 && data[cur] == '\n' as u8 {
                 if !self.buf_.is_empty() {
                     self.buf_.push_str (&String::from_utf8_lossy(&data[prev..cur]));
                     let temp = self.buf_.clone();
@@ -196,7 +200,7 @@ impl HttpParser {
 
         method_list.insert ("GET".to_string(), Method::GET);
         method_list.insert ("POST".to_string(), Method::POST);
-        method_list.insert ("HTTP".to_string(), Method::RESPONSE);
+        method_list.insert ("HTTP/1.1".to_string(), Method::RESPONSE);
 
         let data_str = String::from_utf8_lossy(&data);
         let mut split_iter = data_str.split_whitespace();

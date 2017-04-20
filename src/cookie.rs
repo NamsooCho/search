@@ -140,7 +140,7 @@ impl Cookie {
             domain_: "".to_string(),
             secure_: "".to_string(),
         };
-        let name = cookie[a..a+b].to_string();
+        let name = cookie[..b].to_string();
         cookie_info.value_ = self.search_cookie_value(&cookie, &name);
         cookie_info.expires_ = self.search_cookie_value(&cookie, &"expires".to_string());
         cookie_info.path_ = self.search_cookie_value(&cookie, &"path".to_string());
