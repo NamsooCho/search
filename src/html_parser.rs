@@ -6,7 +6,7 @@ use std::str;
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum State { INIT, TAG, COMMENT, }
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum TagType { A, FRAME, SCRIPT, BODY, BODY_END, ERROR,}
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq,Hash)] enum AttrType { HREF, SRC, UNKNOWN, }
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ParserType { NONE = 0, LINK_URL = 0x01, FRAME_SRC = 0x02, BODY_TEXT = 0x04, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ParserType { NONE = 0, LINK_URL = 0x01, FRAME_SRC = 0x02, BODY_TEXT = 0x04, ALL = 0x07 }
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ScriptState { S_INIT, S_SCRIPT, S_OUT1, S_OUT2 }
 
 #[derive(Debug, Clone,PartialEq,Eq)]
@@ -32,7 +32,7 @@ impl HtmlParser {
 
     pub fn new() -> HtmlParser {
         let mut p = HtmlParser {
-            parser_type_: ParserType::NONE,
+            parser_type_: ParserType::ALL,
             state_: State::INIT,
             url_list_: Vec::new(),
             frame_: Vec::new(),
@@ -104,7 +104,12 @@ impl HtmlParser {
     }
 
     fn get_tag_type (&self, data: &[u8], prev: usize, b: usize) -> TagType {
-        let tag = str::from_utf8(&data[prev..b]).unwrap().to_uppercase();
+        let tag_ = match str::from_utf8(&data[prev..b]) {
+            Ok(s) => s,
+            Err(_) => " ",
+        };
+        
+        let tag = &tag_.to_uppercase();
 
         let rlt = match tag.as_ref() {
             "A" => TagType::A,
@@ -147,9 +152,10 @@ impl HtmlParser {
             let value;
             let val_b;
             if data[b] == '"' as u8 || data[b] == '\'' as u8 {
-                //let sep = data[b];
+                let sep = data[b];
                 val_b = b + 1;
-                while b < e && (data[b] as char).is_whitespace() {
+                b = b + 1;
+                while b < e && data[b] != sep {
                     b = b + 1;
                 }
                 value = str::from_utf8(&data[val_b..b]).unwrap().to_string();
