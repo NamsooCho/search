@@ -5,7 +5,7 @@
         "request": "launch",
         "name": "Debug",
         "program": "${workspaceRoot}/target/debug/search",
-        "args": ["-swww.ibric.org/community/", "-c1"],
+        "args": ["-shttps://okky.kr/articles/community", "-c1", "-o/Volumes/DATA/crwaler"],
         "cwd": "${workspaceRoot}",
         "preLaunchTask": "cargo",
         "sourceLanguages": ["rust"],

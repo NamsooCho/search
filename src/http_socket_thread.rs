@@ -5,6 +5,7 @@ use std::error::Error;
 use std::collections::{BTreeSet};
 use std::io::prelude::*;
 use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr};
+use openssl::ssl::{SslMethod, SslConnectorBuilder, SslStream};
 
 use sync_q::SyncQ;
 use url_parser::Url;
@@ -24,10 +25,11 @@ pub struct HttpSocketThread {
     dns_: Dns,
     http_parser_: HttpParser,
     err_: String,
+    out_dir_: String
 }
 
 impl HttpSocketThread {
-    pub fn new (sync_q: &mut SyncQ, cookie: &mut Cookie) -> HttpSocketThread {
+    pub fn new (sync_q: &mut SyncQ, cookie: &mut Cookie, out_dir: &String) -> HttpSocketThread {
         let mut sock = HttpSocketThread {
             continue_: true, 
             url_q: sync_q.clone(), 
@@ -37,6 +39,7 @@ impl HttpSocketThread {
             dns_: Dns::new(),
             http_parser_: HttpParser::new(),
             err_: String::new(),
+            out_dir_: out_dir.clone()
         };
         sock
     }
@@ -95,6 +98,33 @@ impl HttpSocketThread {
         self.http_parser_.is_ok()
     }
 
+    fn recv_data_ssl (&mut self, sock: &mut SslStream<TcpStream>) -> bool {
+        let mut data = Vec::new();
+        //let mut ret = 0;
+        let mut recv_size;
+        let mut done = false;
+
+        self.http_parser_.clear();
+
+        while !done {
+            recv_size = sock.read_to_end (&mut data).unwrap();
+            if recv_size <= 0 {
+                self.err_ = "connection closed.".to_string();
+                return false;
+            }
+
+            self.http_parser_.parse(&mut data);
+            done = !self.http_parser_.is_partial();
+            data.clear();
+        }
+
+        if !self.http_parser_.is_ok() && !self.http_parser_.is_redirect() {
+            self.err_ = format!("HTTP Error (Response Code: {})", self.http_parser_.get_rep_code());
+        }
+
+        self.http_parser_.is_ok()
+    }
+
     fn request (&mut self, url: &mut Url) -> bool {
         if url.empty() {
             return false;
@@ -113,7 +143,15 @@ impl HttpSocketThread {
             let mut addr = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
             if self.dns_.get_sock_addr (&url.get_net_loc(), &mut addr) {
                 let ip = addr.ip().octets();
-                let port = 80;
+                let mut port = 80;
+                let connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap().build();
+
+                let mut send_data;
+                let cook = self.cookie_.get_cookie(url);
+                send_data = self.make_http_header (
+                    url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 
+                    url.get_net_loc(), cook);
+
                 let mut tcp_s = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
                     Ok(s) => s,
                     _ => {
@@ -121,15 +159,29 @@ impl HttpSocketThread {
                         continue;
                     },
                 };
-                let mut send_data;
-                let cook = self.cookie_.get_cookie(url);
-                send_data = self.make_http_header (
-                    url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 
-                    url.get_net_loc(), cook);
-                tcp_s.write(send_data.as_bytes());
-                self.recv_data (&mut tcp_s);
+
+                if url.get_scheme() == "https" {
+                    port = 443;
+                    tcp_s = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
+                        Ok(s) => s,
+                        _ => {
+                            err_ = format!("\"{}.{}.{}.{}:{}\"",ip[0],ip[1],ip[2],ip[3],port).to_string();
+                            continue;
+                        },
+                    };
+                    let mut tcp_ssl = connector.connect(&url.get_net_loc(), tcp_s).unwrap();
+                    tcp_ssl.write(send_data.as_bytes());
+                    self.recv_data_ssl (&mut tcp_ssl);
+
+                }
+                else {
+                    tcp_s.write(send_data.as_bytes());
+                    self.recv_data (&mut tcp_s);
+                }
+
                 self.cookie_.insert(&self.http_parser_.get_cookie(), &url);
             }
+
             if self.http_parser_.is_redirect() && !self.http_parser_.get_location().is_empty() {
                 url.update(self.http_parser_.get_location());
             }
@@ -152,7 +204,7 @@ impl HttpSocketThread {
             
             let mut url: Url = self.url_q.get_next_url ();
             if self.request (&mut url) {
-                self.output_ = self.output_.clone() + &html_cnt.to_string() + ".html";
+                self.output_ = self.out_dir_.clone() + &html_cnt.to_string() + ".html";
                 html_cnt = html_cnt + 1;
                 let out_path = Path::new(&self.output_);
                 let display = out_path.display();

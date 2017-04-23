@@ -11,6 +11,7 @@ extern crate env_logger;
 extern crate enum_primitive;
 extern crate num;
 extern crate time;
+extern crate openssl;
 
 mod http_socket_thread;
 mod sync_q;
@@ -66,13 +67,13 @@ fn main() {
     };
 
     let seed = match matches.opt_str("s") {
-        Some(x) => "http://".to_string() + &x,
-        None => "http://www.ibric.org/community/".to_string(),
+        Some(x) => x,
+        None => "https://okky.kr/articles/community/".to_string(),
     };
 
     let out_dir = match matches.opt_str("o") {
-        Some(x) => x + "/result.txt",
-        None => "./result.txt".to_string(),
+        Some(x) => x + "/",
+        None => "/Volumes/DATA/crwaler/".to_string(),
     };
 
     let timeout: u32 = match matches.opt_str("t") {
@@ -103,7 +104,7 @@ fn main() {
         let queue_c = queue_.clone();
         let mut cookie = cookie_c.lock().unwrap();
         let mut queue = queue_c.lock().unwrap();
-        let mut sock = HttpSocketThread::new(&mut queue, &mut cookie);
+        let mut sock = HttpSocketThread::new(&mut queue, &mut cookie, &arg.out_dir_);
         sock_arr.push(sock.clone());
         let cookie_ = cookie_.clone();
         let queue_ = queue_.clone();
