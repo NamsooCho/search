@@ -24,7 +24,10 @@ impl Dns {
             },
             None => {
                 let mut e = sock_v4.clone();
-                for sock_v4_6 in net::lookup_host(&host).unwrap() {
+                for sock_v4_6 in match net::lookup_host(&host) {
+                    Ok(x) => x,
+                    Err(_) => { return false; }
+                } {
                     match sock_v4_6 {
                         SocketAddr::V4(x) => { e = x; break; },
                         SocketAddr::V6(_) => { *addr = sock_v4; return false; } ,

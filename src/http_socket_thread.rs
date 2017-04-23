@@ -29,11 +29,12 @@ pub struct HttpSocketThread {
     dns_: Dns,
     http_parser_: HttpParser,
     err_: String,
-    out_dir_: String
+    out_dir_: String,
+    thread_idx: i32
 }
 
 impl HttpSocketThread {
-    pub fn new (out_dir: &String) -> HttpSocketThread {
+    pub fn new (out_dir: &String, idx: i32) -> HttpSocketThread {
         let mut sock = HttpSocketThread {
             continue_: true, 
             url_q: Arc::new(Mutex::new(SyncQ::new(&"".to_string(), 1000))), 
@@ -43,7 +44,8 @@ impl HttpSocketThread {
             dns_: Dns::new(),
             http_parser_: HttpParser::new(),
             err_: String::new(),
-            out_dir_: out_dir.clone()
+            out_dir_: out_dir.clone(),
+            thread_idx: 0
         };
         sock
     }
@@ -213,7 +215,7 @@ impl HttpSocketThread {
             }
 
             if self.request (&mut url) {
-                self.output_ = self.out_dir_.clone() + &html_cnt.to_string() + ".html";
+                self.output_ = self.out_dir_.clone() + &self.thread_idx.to_string() + "_" + &html_cnt.to_string() + ".html";
                 html_cnt = html_cnt + 1;
                 let out_path = Path::new(&self.output_);
                 let display = out_path.display();
@@ -231,11 +233,12 @@ impl HttpSocketThread {
         }
     }
 
-    pub fn initiate (&mut self, queue: Arc<Mutex<SyncQ>>, cookie: Arc<Mutex<Cookie>>) {
+    pub fn initiate (&mut self, idx: i32, queue: Arc<Mutex<SyncQ>>, cookie: Arc<Mutex<Cookie>>) {
         self.continue_ = true;
         self.redir_history = BTreeSet::new();
         self.url_q = queue;
         self.cookie_ = cookie;
+        self.thread_idx = idx;
         self.thread_function ();
     }
 }

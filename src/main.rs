@@ -83,7 +83,7 @@ fn main() {
 
     let sock_cnt: u32 = match matches.opt_str("c") {
         Some(x) => x.parse().unwrap(),
-        None => 4,
+        None => 12,
     };
 
     let arg: Args = Args {
@@ -99,15 +99,15 @@ fn main() {
     let mut sock_arr = vec![];
     let cookie_ = Arc::new(Mutex::new(Cookie::new()));
     let queue_ = Arc::new(Mutex::new(SyncQ::new(&arg.seed_, q_limit)));
-    for _ in 0..arg.sock_cnt_ {
+    for i in 0..arg.sock_cnt_ {
         let cookie = cookie_.clone();
         let queue = queue_.clone();
         //let mut cookie = cookie_c.lock().unwrap();
         //let mut queue = queue_c.lock().unwrap();
-        let mut sock = HttpSocketThread::new(&arg.out_dir_);
+        let mut sock = HttpSocketThread::new(&arg.out_dir_, i as i32);
         sock_arr.push(sock.clone());
         children.push(thread::spawn(move || {
-            sock.initiate(queue, cookie);
+            sock.initiate(i as i32, queue, cookie);
         }));
     }
 
