@@ -30,7 +30,11 @@ impl SyncQ {
     }
 
     pub fn get_next_url (&mut self) -> Url {
-        self.url.pop_front().unwrap()
+        let u = match self.url.pop_front() {
+            Some(x) => x,
+            None    => Url::new(),
+        };
+        u
     }
 
     pub fn insert (&mut self,  base_url: &mut Url, url_list: &mut Vec<String>) {

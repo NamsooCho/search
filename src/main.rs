@@ -23,7 +23,7 @@ mod dns;
 
 use http_socket_thread::HttpSocketThread;
 use cookie::Cookie;
-use std::sync::{Arc,Mutex};
+use std::sync::{Arc,Mutex,MutexGuard};
 use sync_q::SyncQ;
 
 struct Args {
@@ -63,12 +63,12 @@ fn main() {
 
     let q_limit: u32 = match matches.opt_str("q") {
         Some(x) => x.parse().unwrap(),
-        None => 100,
+        None => 1000,
     };
 
     let seed = match matches.opt_str("s") {
         Some(x) => x,
-        None => "https://okky.kr/articles/community/".to_string(),
+        None => "https://okky.kr/articles/community".to_string(),
     };
 
     let out_dir = match matches.opt_str("o") {
@@ -83,7 +83,7 @@ fn main() {
 
     let sock_cnt: u32 = match matches.opt_str("c") {
         Some(x) => x.parse().unwrap(),
-        None => 8,
+        None => 4,
     };
 
     let arg: Args = Args {
@@ -100,18 +100,14 @@ fn main() {
     let cookie_ = Arc::new(Mutex::new(Cookie::new()));
     let queue_ = Arc::new(Mutex::new(SyncQ::new(&arg.seed_, q_limit)));
     for _ in 0..arg.sock_cnt_ {
-        let cookie_c = cookie_.clone();
-        let queue_c = queue_.clone();
-        let mut cookie = cookie_c.lock().unwrap();
-        let mut queue = queue_c.lock().unwrap();
-        let mut sock = HttpSocketThread::new(&mut queue, &mut cookie, &arg.out_dir_);
+        let cookie = cookie_.clone();
+        let queue = queue_.clone();
+        //let mut cookie = cookie_c.lock().unwrap();
+        //let mut queue = queue_c.lock().unwrap();
+        let mut sock = HttpSocketThread::new(&arg.out_dir_);
         sock_arr.push(sock.clone());
-        let cookie_ = cookie_.clone();
-        let queue_ = queue_.clone();
         children.push(thread::spawn(move || {
-            let mut cookie = cookie_.lock().unwrap();
-            let mut queue = queue_.lock().unwrap();
-            sock.initiate(&mut queue, &mut cookie);
+            sock.initiate(queue, cookie);
         }));
     }
 

@@ -6,6 +6,10 @@ use std::collections::{BTreeSet};
 use std::io::prelude::*;
 use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr};
 use openssl::ssl::{SslMethod, SslConnectorBuilder, SslStream};
+use std::sync::{Arc,Mutex,MutexGuard};
+use std::ops::DerefMut;
+use std::time::Duration;
+use std::thread;
 
 use sync_q::SyncQ;
 use url_parser::Url;
@@ -18,10 +22,10 @@ use url_parser::Range;
 #[derive(Debug, Clone)]
 pub struct HttpSocketThread {
     continue_: bool,
-    url_q: SyncQ,
+    url_q: Arc<Mutex<SyncQ>>,
     output_: String,
     redir_history: BTreeSet<Url>,
-    cookie_: Cookie,
+    cookie_: Arc<Mutex<Cookie>>,
     dns_: Dns,
     http_parser_: HttpParser,
     err_: String,
@@ -29,13 +33,13 @@ pub struct HttpSocketThread {
 }
 
 impl HttpSocketThread {
-    pub fn new (sync_q: &mut SyncQ, cookie: &mut Cookie, out_dir: &String) -> HttpSocketThread {
+    pub fn new (out_dir: &String) -> HttpSocketThread {
         let mut sock = HttpSocketThread {
             continue_: true, 
-            url_q: sync_q.clone(), 
+            url_q: Arc::new(Mutex::new(SyncQ::new(&"".to_string(), 1000))), 
             output_: "".to_string(), 
             redir_history: BTreeSet::new(), 
-            cookie_: cookie.clone(),
+            cookie_: Arc::new(Mutex::new(Cookie::new())),
             dns_: Dns::new(),
             http_parser_: HttpParser::new(),
             err_: String::new(),
@@ -147,7 +151,7 @@ impl HttpSocketThread {
                 let connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap().build();
 
                 let mut send_data;
-                let cook = self.cookie_.get_cookie(url);
+                let cook = self.cookie_.lock().unwrap().get_cookie(url);
                 send_data = self.make_http_header (
                     url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 
                     url.get_net_loc(), cook);
@@ -179,7 +183,7 @@ impl HttpSocketThread {
                     self.recv_data (&mut tcp_s);
                 }
 
-                self.cookie_.insert(&self.http_parser_.get_cookie(), &url);
+                self.cookie_.lock().unwrap().insert(&self.http_parser_.get_cookie(), &url);
             }
 
             if self.http_parser_.is_redirect() && !self.http_parser_.get_location().is_empty() {
@@ -198,11 +202,16 @@ impl HttpSocketThread {
         let mut html_cnt = 0;
 
         while self.continue_ {
-            if self.url_q.full () {
+            if self.url_q.lock().unwrap().full () {
                 break;
             }
             
-            let mut url: Url = self.url_q.get_next_url ();
+            let mut url: Url = self.url_q.lock().unwrap().get_next_url ();
+            if url.empty() {
+                thread::sleep(Duration::from_secs(3));
+                continue;
+            }
+
             if self.request (&mut url) {
                 self.output_ = self.out_dir_.clone() + &html_cnt.to_string() + ".html";
                 html_cnt = html_cnt + 1;
@@ -214,7 +223,7 @@ impl HttpSocketThread {
                 };
                 out_file.write_all (self.http_parser_.get_body ().as_bytes()).unwrap();
                 html_parser.parse (self.http_parser_.get_body().to_string());
-                self.url_q.insert (&mut url, &mut html_parser.extract_link_url_list ());
+                self.url_q.lock().unwrap().insert (&mut url, &mut html_parser.extract_link_url_list ());
             }
             else {
                 error!("{} --> {}", url.get_url_str(0xFF), self.err_);
@@ -222,11 +231,11 @@ impl HttpSocketThread {
         }
     }
 
-    pub fn initiate (&mut self, queue: &mut SyncQ, cookie: &mut Cookie) {
+    pub fn initiate (&mut self, queue: Arc<Mutex<SyncQ>>, cookie: Arc<Mutex<Cookie>>) {
         self.continue_ = true;
         self.redir_history = BTreeSet::new();
-        self.url_q = queue.clone();
-        self.cookie_ = cookie.clone();
+        self.url_q = queue;
+        self.cookie_ = cookie;
         self.thread_function ();
     }
 }
