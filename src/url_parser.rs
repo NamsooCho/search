@@ -5,6 +5,7 @@ use std::clone::Clone;
 const DEFAULT_PORT: u16 = 80;
 
 enum_from_primitive! {
+#[derive(Debug, PartialEq)]
     pub enum Range {
         SCHEME = 0x01,
         NETLOC = 0x02,
@@ -13,6 +14,8 @@ enum_from_primitive! {
         QUERY = 0x10,
         FRAGMENT = 0x20,
         ALL = 0xFF,
+        NONE = 0x00,
+        SCHEME_NETLOC_PATH = 0x07
     }
 }
 

@@ -5,7 +5,7 @@
         "request": "launch",
         "name": "Debug",
         "program": "${workspaceRoot}/target/debug/search",
-        "args": ["-swww.ibric.org/trend/", "-c1"],
+        "args": ["-swww.ibric.org/community/", "-c1"],
         "cwd": "${workspaceRoot}",
         "preLaunchTask": "cargo",
         "sourceLanguages": ["rust"],

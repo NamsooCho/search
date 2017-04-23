@@ -67,7 +67,7 @@ fn main() {
 
     let seed = match matches.opt_str("s") {
         Some(x) => "http://".to_string() + &x,
-        None => "http://www.naver.com".to_string(),
+        None => "http://www.ibric.org/community/".to_string(),
     };
 
     let out_dir = match matches.opt_str("o") {

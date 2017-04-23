@@ -43,7 +43,12 @@ impl SyncQ {
             }
 
             let mut temp: Url = Url::new();
-            url.parse(&mut url.get_url(Range::from_u8(Range::SCHEME as u8 | Range::NETLOC as u8 | Range::PATH as u8).unwrap()), &mut temp);
+            let range = match Range::from_u8(Range::SCHEME as u8 | Range::NETLOC as u8 | Range::PATH as u8) {
+                Some(x) => x,
+                None => Range::NONE
+            };
+
+            url.parse(&mut url.get_url(range), &mut temp);
             if !self.url_history.contains(&temp) {
                 self.url_history.insert(temp.clone());
                 self.url.push_back(temp.clone());

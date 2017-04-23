@@ -27,7 +27,6 @@ impl HtmlParser {
         self.frame_.clear();
         self.plain_text_.clear();
         self.is_body_ = false;
-        self.latin_set_.clear();
     }
 
     pub fn new() -> HtmlParser {
@@ -72,8 +71,8 @@ impl HtmlParser {
     }
 
     fn convert_latin_set (&self, data: &[u8], b: usize, e: usize, c: &mut char) -> usize {
-        let mut cur = b;
-        let mut set_e = cur + 1;
+        let mut cur = b + 1;
+        let mut set_e = cur;
 
         while set_e < e && data[set_e] != ';' as u8 && !(data[set_e] as char).is_whitespace() {
             set_e = set_e + 1;
@@ -83,10 +82,18 @@ impl HtmlParser {
             let code: u8;
             if data[cur] == '#' as u8 {
                 cur = cur + 1;
-                code = str::from_utf8(&data[cur..set_e]).unwrap().to_string().parse().unwrap();
+                let k = str::from_utf8(&data[cur..set_e]).unwrap().to_string();
+                code = match k.parse::<i32>() {
+                    Ok(x) => (x | 0xFF) as u8,
+                    Err(_) => 0
+                }
             }
             else {
-                code = *self.latin_set_.get(str::from_utf8(&data[cur..set_e]).unwrap()).unwrap();
+                let k = str::from_utf8(&data[cur..set_e]).unwrap();
+                code =  match self.latin_set_.get(k) {
+                    Some(x) => *x,
+                    None => 0
+                }
             }
 
             if code > 0 {
