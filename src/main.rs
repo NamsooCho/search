@@ -68,12 +68,12 @@ fn main() {
 
     let seed = match matches.opt_str("s") {
         Some(x) => x,
-        None => "https://okky.kr/articles/community".to_string(),
+        None => "https://www.mozilla.org/en-US".to_string(),
     };
 
     let out_dir = match matches.opt_str("o") {
         Some(x) => x + "/",
-        None => "/Volumes/DATA/crwaler/".to_string(),
+        None => "./data/".to_string(),
     };
 
     let timeout: u32 = match matches.opt_str("t") {
@@ -83,7 +83,7 @@ fn main() {
 
     let sock_cnt: u32 = match matches.opt_str("c") {
         Some(x) => x.parse().unwrap(),
-        None => 12,
+        None => 2,
     };
 
     let arg: Args = Args {
