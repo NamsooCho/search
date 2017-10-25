@@ -69,11 +69,12 @@ impl html_extractor
             }
             rlt.push (data[b]);
         }
+
         let rlt_str = str::from_utf8(rlt).unwrap().to_string();
         rlt_str
     }
 
-    fn parse (&self, org_txt : String) => String
+    fn parse (&self, org_txt : String) -> String
     {
         let data = org_txt.as_bytes();
         let data_str = &org_txt;
