@@ -36,7 +36,7 @@ impl html_extractor
         self.startFlag_ = pair.startFlag_;
         self.endFlag_ = pair.endFlag_;
         let rlt;
-        if (self.startFlag_ == "" && self.endFlag_ == "")
+        if (&self.startFlag_ == "" && &self.endFlag_ == "")
         {
             rlt = Err();
         }
@@ -48,22 +48,53 @@ impl html_extractor
         rlt
     }
 
-    fn parse (&self, org_txt : &String) => String
+    fn del_tags (&self, data : &[u8], s : usize, e_tmp : usize) -> String
     {
-        let data = org_txt.as_bytes();
-        let data_str = str::from_utf8 (data).unwrap();
-        let mut b: usize = 0;
-        let e: usize = b + data.len();
+        let rlt = Vec<u8>::new();
+        let mut b: usize = s + self.startFlag_.len();
+        let e: usize = e_tmp - b - self.endFlag_.len();
 
-        let mut rlt = Vec::new();
-
-        if data_str.contains(&self.startFlag_);
+        while (b++ < e)
         {
-            
+            if data[b] == '<' as u8
+            {
+                while (b++ < e)
+                {
+                    if data[b] == '>' as u8
+                    {
+                        b++;
+                        break;
+                    }
+                }
+            }
+            rlt.push (data[b]);
         }
+        let rlt_str = str::from_utf8(rlt).unwrap().to_string();
+        rlt_str
     }
 
-    pub fn extract (&mut self, org_txt : &String, domain : String) -> String
+    fn parse (&self, org_txt : String) => String
+    {
+        let data = org_txt.as_bytes();
+        let data_str = &org_txt;
+
+        let mut rlt = "".to_string();
+
+        if data_str.contains(&self.startFlag_) && data_str.contains(&self.endFlag_)
+        {
+            let s = data_str.find(&self.startFlag_).unwrap();
+            let e = data_str.find(&self.endFlag_).unwrap();
+            rlt = self.del_tags(data, s, e);
+        }
+        else
+        {
+            rlt = org_txt;
+        }
+
+        rlt
+    }
+
+    pub fn extract (&mut self, org_txt : String, domain : String) -> String
     {
         let mut rlt_str : String = '';
 
