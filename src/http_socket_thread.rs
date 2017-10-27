@@ -147,46 +147,50 @@ impl HttpSocketThread {
             }
 
             let mut addr = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
-            if self.dns_.get_sock_addr (&url.get_net_loc(), &mut addr) {
-                let ip = addr.ip().octets();
-                let mut port = 80;
-                let connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap().build();
+            match self.dns_.get_sock_addr (&url.get_net_loc()) {
+                Some(e) => {
+                    addr = e;
+                    let ip = addr.ip().octets();
+                    let mut port = 80;
+                    let connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap().build();
 
-                let mut send_data;
-                let cook = self.cookie_.lock().unwrap().get_cookie(url);
-                send_data = self.make_http_header (
-                    url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 
-                    url.get_net_loc(), cook);
+                    let mut send_data;
+                    let cook = self.cookie_.lock().unwrap().get_cookie(url);
+                    send_data = self.make_http_header (
+                        url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 
+                        url.get_net_loc(), cook);
 
-                let mut tcp_s = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
-                    Ok(s) => s,
-                    _ => {
-                        err_ = format!("\"{}.{}.{}.{}:{}\"",ip[0],ip[1],ip[2],ip[3],port).to_string();
-                        continue;
-                    },
-                };
-
-                if url.get_scheme() == "https" {
-                    port = 443;
-                    tcp_s = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
+                    let mut tcp_s = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
                         Ok(s) => s,
                         _ => {
                             err_ = format!("\"{}.{}.{}.{}:{}\"",ip[0],ip[1],ip[2],ip[3],port).to_string();
                             continue;
                         },
                     };
-                    let mut tcp_ssl = connector.connect(&url.get_net_loc(), tcp_s).unwrap();
-                    tcp_ssl.write(send_data.as_bytes());
-                    self.recv_data_ssl (&mut tcp_ssl);
 
-                }
-                else {
-                    tcp_s.write(send_data.as_bytes());
-                    self.recv_data (&mut tcp_s);
-                }
+                    if url.get_scheme() == "https" {
+                        port = 443;
+                        tcp_s = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
+                            Ok(s) => s,
+                            _ => {
+                                err_ = format!("\"{}.{}.{}.{}:{}\"",ip[0],ip[1],ip[2],ip[3],port).to_string();
+                                continue;
+                            },
+                        };
+                        let mut tcp_ssl = connector.connect(&url.get_net_loc(), tcp_s).unwrap();
+                        tcp_ssl.write(send_data.as_bytes());
+                        self.recv_data_ssl (&mut tcp_ssl);
 
-                self.cookie_.lock().unwrap().insert(&self.http_parser_.get_cookie(), &url);
-            }
+                    }
+                    else {
+                        tcp_s.write(send_data.as_bytes());
+                        self.recv_data (&mut tcp_s);
+                    }
+
+                    self.cookie_.lock().unwrap().insert(&self.http_parser_.get_cookie(), &url);
+                },
+                None => {},
+            };
 
             if self.http_parser_.is_redirect() && !self.http_parser_.get_location().is_empty() {
                 url.update(self.http_parser_.get_location());
