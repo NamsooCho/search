@@ -176,12 +176,20 @@ impl HttpSocketThread {
                             },
                         };
                         let mut tcp_ssl = connector.connect(&url.get_net_loc(), tcp_s).unwrap();
-                        tcp_ssl.write(send_data.as_bytes());
+                        match tcp_ssl.write(send_data.as_bytes())
+                        {
+                            Ok(_) => {;},
+                            Err(e) => { print! ("Tcp ssl write error {}", e)},
+                        };
                         self.recv_data_ssl (&mut tcp_ssl);
 
                     }
                     else {
-                        tcp_s.write(send_data.as_bytes());
+                        match tcp_s.write(send_data.as_bytes())
+                        {
+                            Ok(_) => {;},
+                            Err(e) => { print! ("Tcp write error {}", e)},
+                        };
                         self.recv_data (&mut tcp_s);
                     }
 
