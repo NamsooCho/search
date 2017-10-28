@@ -4,10 +4,10 @@ use std::str;
 
 
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum State { INIT, TAG, COMMENT, }
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum TagType { A, FRAME, SCRIPT, BODY, BODY_END, ERROR,}
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum TagType { A, FRAME, SCRIPT, BODY, BodyEnd, ERROR,}
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq,Hash)] enum AttrType { HREF, SRC, UNKNOWN, }
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ParserType { NONE = 0, LINK_URL = 0x01, FRAME_SRC = 0x02, BODY_TEXT = 0x04, ALL = 0x07 }
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ScriptState { S_INIT, S_SCRIPT, S_OUT1, S_OUT2 }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ParserType { LinkUrl = 0x01, FrameSrc = 0x02, BodyText = 0x04, ALL = 0x07, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ScriptState { SInit, SScript, SOut1, SOut2, }
 
 #[derive(Debug, Clone,PartialEq,Eq)]
 pub struct HtmlParser {
@@ -123,7 +123,7 @@ impl HtmlParser {
             "FRAME" => TagType::FRAME,
             "SCRIPT" => TagType::SCRIPT,
             "BODY" => TagType::BODY,
-            "/BODY" => TagType::BODY_END,
+            "/BODY" => TagType::BodyEnd,
             &_ => TagType::ERROR
         };
         rlt
@@ -193,34 +193,34 @@ impl HtmlParser {
     }
 
     fn remove_script (&self, data: &[u8], mut b: usize, e: usize) -> usize {
-        let mut state: ScriptState = ScriptState::S_INIT;
+        let mut state: ScriptState = ScriptState::SInit;
         for _ in b..e {
             match state {
-                ScriptState::S_INIT => {
+                ScriptState::SInit => {
                     if data[b] == '<' as u8 {
                         return b;
                     }
                     else if data[b] == '>' as u8 {
-                        state = ScriptState::S_SCRIPT;
+                        state = ScriptState::SScript;
                     }
                 },
 
-                ScriptState::S_SCRIPT => {
+                ScriptState::SScript => {
                     if data[b] == '<' as u8 {
-                        state = ScriptState::S_OUT1;
+                        state = ScriptState::SOut1;
                     }
                 },
 
-                ScriptState::S_OUT1 => {
+                ScriptState::SOut1 => {
                     if data[b] == '/' as u8 {
-                        state = ScriptState::S_OUT2;
+                        state = ScriptState::SOut2;
                     }
                     else {
-                        state = ScriptState::S_SCRIPT;
+                        state = ScriptState::SScript;
                     }
                 },
 
-                ScriptState::S_OUT2 => {
+                ScriptState::SOut2 => {
                     let prev = b;
                     while b < e && (data[b] as char).is_alphanumeric() {
                         b = b + 1;
@@ -232,7 +232,7 @@ impl HtmlParser {
                         }
                     }
                     else {
-                        state = ScriptState::S_SCRIPT;
+                        state = ScriptState::SScript;
                         b = prev;
                     }
                 }
@@ -263,7 +263,7 @@ impl HtmlParser {
 
         match self.get_tag_type (data, prev, b) {
             TagType::A => {
-                if self.parser_type_.clone() as u8 & ParserType::LINK_URL as u8 > 0 {
+                if self.parser_type_.clone() as u8 & ParserType::LinkUrl as u8 > 0 {
                     self.parse_attribute (data, b, tag_e, &mut attr_list);
                     val = self.get_attr_value (&attr_list, AttrType::HREF);
                     if !val.is_empty() {
@@ -273,7 +273,7 @@ impl HtmlParser {
             },
 
             TagType::FRAME => {
-                if self.parser_type_.clone() as u8 & ParserType::FRAME_SRC as u8 > 0 {
+                if self.parser_type_.clone() as u8 & ParserType::FrameSrc as u8 > 0 {
                     self.parse_attribute (data, b, tag_e, &mut attr_list);
                     val = self.get_attr_value (&attr_list, AttrType::SRC);
                     if !val.is_empty() {
@@ -287,12 +287,12 @@ impl HtmlParser {
             },
 
             TagType::BODY => {
-                if self.parser_type_.clone() as u8 & ParserType::BODY_TEXT as u8 > 0 {
+                if self.parser_type_.clone() as u8 & ParserType::BodyText as u8 > 0 {
                     self.is_body_ = true;
                 }
             },
 
-            TagType::BODY_END => {
+            TagType::BodyEnd => {
                 if self.is_body_.clone() {
                     self.is_body_ = false;
                 }
@@ -354,7 +354,8 @@ impl HtmlParser {
         self.url_list_.clone()
     }
 
-    pub fn extract_frame_url_list (&self) -> Vec<String> {
+/*    pub fn extract_frame_url_list (&self) -> Vec<String> {
         self.frame_.clone()
     }
+*/
 }

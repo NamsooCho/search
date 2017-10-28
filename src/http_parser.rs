@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 //use cookie::Cookie;
 
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum State { INIT, HEADER_PARTIAL, BODY_PARTIAL, }
-#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ChunkState { CHUNK_INIT, CHUNK_PARTIAL, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum State { INIT, HeaderPartial, BodyPartial, }
+#[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum ChunkState { ChunkInit, ChunkPartial, }
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)] enum Method { GET, POST, RESPONSE, ERROR, }
 
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)]
@@ -23,7 +23,7 @@ pub struct HttpParser {
 
 impl HttpParser {
     pub fn new () -> HttpParser {
-        let mut h = HttpParser {
+        HttpParser {
             state_: State::INIT,
             buf_: String::new(),
             method_: Method::ERROR,
@@ -31,18 +31,17 @@ impl HttpParser {
             rep_code_: 0,
             is_chunk_: false,
             contents_len_: 0,
-            chunk_state_: ChunkState::CHUNK_INIT,
+            chunk_state_: ChunkState::ChunkInit,
             chunk_size_: 0,
             host_: String::new(),
             location_: String::new(),
             cookie_: Vec::new(),
-        };
-        h
+        }
     }
 
     pub fn clear (&mut self) {
         self.state_ = State::INIT;
-        self.chunk_state_ = ChunkState::CHUNK_INIT;
+        self.chunk_state_ = ChunkState::ChunkInit;
         self.rep_code_ = 0;
         self.contents_len_ = 0;
         self.chunk_size_ = 0;
@@ -183,11 +182,11 @@ impl HttpParser {
             cur = cur + 1;
         }
         if hdr_partial {
-            self.state_ = State::HEADER_PARTIAL;
+            self.state_ = State::HeaderPartial;
             self.buf_.push_str (&String::from_utf8_lossy(&data[prev.. e]));
         }
         else {
-            self.state_ = State::BODY_PARTIAL;
+            self.state_ = State::BodyPartial;
             if self.contents_len_ > 0 {
                 self.body_.reserve (self.contents_len_ as usize);
             }
@@ -266,11 +265,11 @@ impl HttpParser {
         if data_size as i32 > self.chunk_size_ {
             self.body_.push_str (&String::from_utf8_lossy(&data[b..b+self.chunk_size_ as usize]));
             b = b + self.chunk_size_ as usize;
-            self.chunk_state_ = ChunkState::CHUNK_INIT;
+            self.chunk_state_ = ChunkState::ChunkInit;
         }
         else {
             self.body_.push_str (&String::from_utf8_lossy(&data[b..]));
-            self.chunk_state_ = ChunkState::CHUNK_PARTIAL;
+            self.chunk_state_ = ChunkState::ChunkPartial;
             self.chunk_size_ = self.chunk_size_ - data_size as i32;
             b = data.len() as usize;
         }
@@ -283,11 +282,11 @@ impl HttpParser {
         let e = b + data.len() as usize;
 
         while b < e {
-            if self.chunk_state_ == ChunkState::CHUNK_INIT {
+            if self.chunk_state_ == ChunkState::ChunkInit {
                 b = self.get_chunk_size (data);
                 if self.chunk_size_ == -1 {
                     self.buf_.push_str (&String::from_utf8_lossy(&data[b..e]));
-                    self.chunk_state_ = ChunkState::CHUNK_PARTIAL;
+                    self.chunk_state_ = ChunkState::ChunkPartial;
                     break;
                 }
                 else if self.chunk_size_ == 0 {
@@ -298,7 +297,7 @@ impl HttpParser {
                     b = self.append_body (data, b);
                 }
             }
-            else if self.chunk_state_ == ChunkState::CHUNK_PARTIAL {
+            else if self.chunk_state_ == ChunkState::ChunkPartial {
                 if e - b < 2 && self.chunk_size_ < 0 {
                     self.buf_.push_str (&String::from_utf8_lossy(&data[b..e]));
                     b = b + 1;
@@ -319,7 +318,7 @@ impl HttpParser {
                                 b = self.append_body(data, b);
                             }
                             else if self.chunk_size_ == 0 {
-                                self.chunk_state_ = ChunkState::CHUNK_INIT;
+                                self.chunk_state_ = ChunkState::ChunkInit;
                                 break;
                             }
                             else {
@@ -356,8 +355,8 @@ impl HttpParser {
     pub fn parse (&mut self, data: &mut[u8]) {
         match self.state_ {
             State::INIT   => { self.clear (); self.parse_header (&data); },
-            State::HEADER_PARTIAL   => self.parse_header (&data),
-            State::BODY_PARTIAL   => self.parse_body (&data),
+            State::HeaderPartial   => self.parse_header (&data),
+            State::BodyPartial   => self.parse_body (&data),
         };
     }
 }

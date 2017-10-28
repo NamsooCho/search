@@ -23,14 +23,14 @@ mod dns;
 
 use http_socket_thread::HttpSocketThread;
 use cookie::Cookie;
-use std::sync::{Arc,Mutex,MutexGuard};
+use std::sync::{Arc,Mutex};
 use sync_q::SyncQ;
 
 struct Args {
-    q_limit_: u32,
+//    q_limit_: u32,
     seed_: String,
     out_dir_: String,
-    timeout_: u32,
+//    timeout_: u32,
     sock_cnt_: u32,
 }
 
@@ -76,21 +76,21 @@ fn main() {
         None => "./data/".to_string(),
     };
 
-    let timeout: u32 = match matches.opt_str("t") {
+/*    let timeout: u32 = match matches.opt_str("t") {
         Some(x) => x.parse().unwrap(),
         None => 1000,
     };
-
+*/
     let sock_cnt: u32 = match matches.opt_str("c") {
         Some(x) => x.parse().unwrap(),
         None => 2,
     };
 
     let arg: Args = Args {
-        q_limit_: q_limit,
+ //       q_limit_: q_limit,
         seed_: seed,
         out_dir_: out_dir,
-        timeout_: timeout,
+ //       timeout_: timeout,
         sock_cnt_: sock_cnt,
         };
 
@@ -104,7 +104,7 @@ fn main() {
         let queue = queue_.clone();
         //let mut cookie = cookie_c.lock().unwrap();
         //let mut queue = queue_c.lock().unwrap();
-        let mut sock = HttpSocketThread::new(&arg.out_dir_, i as i32);
+        let mut sock = HttpSocketThread::new(&arg.out_dir_);
         sock_arr.push(sock.clone());
         children.push(thread::spawn(move || {
             sock.initiate(i as i32, queue, cookie);

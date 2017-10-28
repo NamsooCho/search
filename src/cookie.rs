@@ -35,10 +35,10 @@ impl Cookie {
         c
     }
 
-    pub fn clear (&self) {
+ /*   pub fn clear (&self) {
         
     }
-
+*/
     pub fn insert (&mut self, cookie_arr: &Vec<String>, url: &Url) {
         for c in cookie_arr.iter() {
             self.parse (&c, &url);

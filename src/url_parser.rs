@@ -1,4 +1,4 @@
-use std::mem;
+//use std::mem;
 //use std::ops::BitAnd;
 use std::clone::Clone;
 
@@ -15,7 +15,7 @@ enum_from_primitive! {
         FRAGMENT = 0x20,
         ALL = 0xFF,
         NONE = 0x00,
-        SCHEME_NETLOC_PATH = 0x07
+        SchemeNetlocPath = 0x07,
     }
 }
 
@@ -32,7 +32,7 @@ pub struct Url {
 
 impl Url {
     pub fn new () -> Url {
-        let mut u = Url {
+        Url {
             scheme_: "".to_string(),
             net_loc_: "".to_string(),
             path_: "".to_string(),
@@ -40,8 +40,7 @@ impl Url {
             query_: "".to_string(),
             frag_: "".to_string(),
             port_: 80
-        };
-        u
+        }
     }
 
     pub fn compare_netloc (&self, l_netloc: &String, r_netloc: &String) -> bool {
@@ -66,7 +65,7 @@ impl Url {
         self.path_.clone()
     }
 
-    pub fn get_param (&self) -> String {
+ /*   pub fn get_param (&self) -> String {
         self.param_.clone()
     }
 
@@ -77,7 +76,7 @@ impl Url {
     pub fn get_fragment (&self) -> String {
         self.frag_.clone()
     }
-
+*/
     pub fn get_url (&self, range_: Range) -> String {
         let range: u8 = range_ as u8;
         let mut url = String::new();
@@ -147,11 +146,11 @@ impl Url {
         let url_str = self.get_url_str(range as u8);
         url_str.is_empty()
     }
-
+/*
     fn swap<'a> (&'a mut self, other: &'a mut Url) {
         mem::swap (self, other);
     }
-
+*/
     fn get_element (&self, url: &mut String, element: &mut String, c: char) {
         let pos = match url.find(c) {
             Some(p) => p,
@@ -249,7 +248,7 @@ impl Url {
                     }
                     else {
                         let mut base_split: Vec<&str> = base_composer.path_.split('/').collect();
-                        let mut cur_split: Vec<&str> = cur_path.split('/').collect();
+                        let cur_split: Vec<&str> = cur_path.split('/').collect();
 
                         let len = base_split.len();
                         base_split.remove (len);

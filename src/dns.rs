@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::net;
-use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr,IpAddr,LookupHost};
+use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr};
 
 #[derive(Debug, Clone,PartialEq,Eq)]
 pub struct Dns {
@@ -9,20 +9,17 @@ pub struct Dns {
 
 impl Dns {
     pub fn new () -> Dns {
-        let mut d = Dns {
+        Dns {
             cache_: HashMap::new(),
-        };
-        d
+        }
     }
 
     fn check_lookup_host (&self, host: &String) -> bool
     {
         match net::lookup_host(&host) {
-            Ok(x) => { return true; },
+            Ok(_) => { return true; },
             Err(_) => {return false;},
         };
-
-        return true;
     }
 
     pub fn get_sock_addr (&mut self, host: &String) -> Option<SocketAddrV4> {

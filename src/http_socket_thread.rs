@@ -4,10 +4,9 @@ use std::net::TcpStream;
 use std::error::Error;
 use std::collections::{BTreeSet};
 use std::io::prelude::*;
-use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr};
+//use std::net::{SocketAddrV4,Ipv4Addr};
 use openssl::ssl::{SslMethod, SslConnectorBuilder, SslStream};
-use std::sync::{Arc,Mutex,MutexGuard};
-use std::ops::DerefMut;
+use std::sync::{Arc,Mutex};
 use std::time::Duration;
 use std::thread;
 
@@ -34,8 +33,8 @@ pub struct HttpSocketThread {
 }
 
 impl HttpSocketThread {
-    pub fn new (out_dir: &String, idx: i32) -> HttpSocketThread {
-        let mut sock = HttpSocketThread {
+    pub fn new (out_dir: &String) -> HttpSocketThread {
+        HttpSocketThread {
             continue_: true, 
             url_q: Arc::new(Mutex::new(SyncQ::new(&"".to_string(), 1000))), 
             output_: "".to_string(), 
@@ -46,8 +45,7 @@ impl HttpSocketThread {
             err_: String::new(),
             out_dir_: out_dir.clone(),
             thread_idx: 0
-        };
-        sock
+        }
     }
 
     fn check_redir (&mut self, url: &Url) -> bool {
@@ -146,7 +144,7 @@ impl HttpSocketThread {
                 break;
             }
 
-            let mut addr = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
+            let addr;
             match self.dns_.get_sock_addr (&url.get_net_loc()) {
                 Some(e) => {
                     addr = e;
@@ -154,7 +152,7 @@ impl HttpSocketThread {
                     let mut port = 80;
                     let connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap().build();
 
-                    let mut send_data;
+                    let send_data;
                     let cook = self.cookie_.lock().unwrap().get_cookie(url);
                     send_data = self.make_http_header (
                         url.get_url_str(Range::PATH as u8|Range::PARAM as u8|Range::QUERY as u8), 
