@@ -29,7 +29,7 @@ impl Dns {
                     Ok(a) => {
                         addrs = a.filter (|s| s.is_ipv4()).collect(); 
                     },
-                    Err(_) => { addrs = vec![]; },
+                    Err(_) => { addrs = vec![]; error! ("lookup host error.");},
                 };
 
                 for sock_v4_6 in addrs.into_iter()

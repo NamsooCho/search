@@ -179,7 +179,7 @@ impl HttpSocketThread {
                         match tcp_ssl.write(send_data.as_bytes())
                         {
                             Ok(_) => {;},
-                            Err(e) => { print! ("Tcp ssl write error {}", e)},
+                            Err(e) => { error! ("Tcp ssl write error {}", e)},
                         };
                         self.recv_data_ssl (&mut tcp_ssl);
 
@@ -188,7 +188,7 @@ impl HttpSocketThread {
                         match tcp_s.write(send_data.as_bytes())
                         {
                             Ok(_) => {;},
-                            Err(e) => { print! ("Tcp write error {}", e)},
+                            Err(e) => { error! ("Tcp write error {}", e)},
                         };
                         self.recv_data (&mut tcp_s);
                     }
