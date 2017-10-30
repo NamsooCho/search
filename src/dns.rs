@@ -23,21 +23,30 @@ impl Dns {
                 sock_v4 = a;
             },
             None => {
-                let lookups = net::lookup_host (&host);
                 let addrs : Vec;
-                match lookups {
+                match net::lookup_host (&host) {
                     Ok(a) => {
                         addrs = a.filter (|s| s.is_ipv4()).collect(); 
                     },
                     Err(_) => { addrs = vec![]; error! ("lookup host error.");},
                 };
 
-                for sock_v4_6 in addrs.into_iter()
+                if addrs.len() == 0
                 {
-                    match sock_v4_6 {
-                        SocketAddr::V4(x) => { e = x; break; },
-                        SocketAddr::V6(_) => { e = sock_v4; } ,
-                    };
+                    e = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
+                }
+                else 
+                {
+                    for sock_v4_6 in addrs.into_iter()
+                    {
+                        match sock_v4_6 {
+                            SocketAddr::V4(x) => { e = x; break; },
+                            SocketAddr::V6(_) => { 
+                                e = SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80);
+                                break;
+                            },
+                        };
+                    }
                 }
                 sock_v4 = e.clone();
             },
