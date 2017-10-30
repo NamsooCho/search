@@ -28,7 +28,7 @@ impl Dns {
                     Ok(a) => {
                         addrs = a.filter (|s| s.is_ipv4()).collect(); 
                     },
-                    Err(_) => { addrs = vec![]; error! ("lookup host error.");},
+                    Err(msg) => { addrs = vec![]; error! ("lookup host error. {}", msg);},
                 };
 
                 if addrs.len() == 0
