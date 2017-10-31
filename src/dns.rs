@@ -16,9 +16,9 @@ impl Dns {
 
     pub fn get_sock_addr (&mut self, host: &String) -> Option<SocketAddrV4> {
         let sock_v4 = match self.cache_.get(host) {
-            Some(addr) => addr,
+            Some(addr) => *addr,
             None => {
-                let addrs = match net::lookup_host (&host) {
+                let addrs : Vec<SocketAddr> = match net::lookup_host (&host) {
                     Ok(a) => a.filter (|s| s.is_ipv4()).collect(),
                     Err(msg) => { error! ("lookup host error. {}", msg); vec![] },
                 };
@@ -33,7 +33,7 @@ impl Dns {
                     {
                         SocketAddr::V4(x) => x,
                         SocketAddr::V6(_) => SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 80),
-                    };
+                    }
                 }
             },
         };
