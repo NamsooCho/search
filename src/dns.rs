@@ -23,11 +23,17 @@ impl Dns {
                 match net::lookup_host (&host) {
                     Ok(a) => {
                         let addrs: Vec<SocketAddr> = a.collect();
-                        let addr = match addrs[0] {
-                            SocketAddr::V4(x) => Some(x),
-                            SocketAddr::V6(_) => None,
-                        };
-                        addr
+                        if addrs.len() != 0
+                        {
+                            let addr = match addrs[0] {
+                                SocketAddr::V4(x) => Some(x),
+                                SocketAddr::V6(_) => None,
+                            };
+                            addr
+                        }
+                        else {
+                            None
+                        }
                     },
                     Err(msg) => {
                         error! ("lookup host error. {}", msg);
