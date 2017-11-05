@@ -43,8 +43,58 @@ impl Dns {
             },
         };
 
-        self.cache_.insert (host.clone(), addr_rlt.unwrap().clone());
+        if addr_rlt != None
+        {
+            self.cache_.insert (host.clone(), addr_rlt.unwrap().clone());
+        }
         addr_rlt
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_localhost() {
+        let mut dns = Dns::new();
+        let rlt = dns.get_sock_addr(&"loocalhost".to_string());
+        assert_eq!(None, rlt);
+    }
+
+    #[test]
+    fn get_localhost2() {
+        let mut dns = Dns::new();
+        let rlt = dns.get_sock_addr(&"loocalhost".to_string());
+        assert_eq!(None, rlt);
+        let rlt2 = dns.get_sock_addr(&"loocalhost".to_string());
+        assert_eq!(None, rlt2);
+    }
+
+    #[test]
+    fn get_google() {
+        let mut dns = Dns::new();
+        let rlt = dns.get_sock_addr(&"www.google.com".to_string());
+        assert_ne!(None, rlt);
+    }
+
+    #[test]
+    fn get_google2() {
+        let mut dns = Dns::new();
+        let rlt = dns.get_sock_addr(&"www.google.com".to_string());
+        assert_ne!(None, rlt);
+        let rlt2 = dns.get_sock_addr(&"www.google.com".to_string());
+        assert_ne!(None, rlt2);
+        assert_eq!(rlt, rlt2);
+    }
+
+    #[test]
+    fn get_google_yahoo() {
+        let mut dns = Dns::new();
+        let rlt = dns.get_sock_addr(&"www.google.com".to_string());
+        assert_ne!(None, rlt);
+        let rlt2 = dns.get_sock_addr(&"www.yahoo.com".to_string());
+        assert_ne!(None, rlt2);
+        assert_ne!(rlt, rlt2);
+    }
+}
