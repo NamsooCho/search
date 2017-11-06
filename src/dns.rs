@@ -60,6 +60,7 @@ mod tests {
         let mut dns = Dns::new();
         let rlt = dns.get_sock_addr(&"loocalhost".to_string());
         assert_eq!(None, rlt);
+        println! ("Dns : {:?}", dns);
     }
 
     #[test]
@@ -69,6 +70,7 @@ mod tests {
         assert_eq!(None, rlt);
         let rlt2 = dns.get_sock_addr(&"loocalhost".to_string());
         assert_eq!(None, rlt2);
+        println! ("Dns : {:?}", dns);
     }
 
     #[test]
@@ -76,6 +78,7 @@ mod tests {
         let mut dns = Dns::new();
         let rlt = dns.get_sock_addr(&"www.google.com".to_string());
         assert_ne!(None, rlt);
+        println! ("Dns : {:?}", dns);
     }
 
     #[test]
@@ -86,6 +89,7 @@ mod tests {
         let rlt2 = dns.get_sock_addr(&"www.google.com".to_string());
         assert_ne!(None, rlt2);
         assert_eq!(rlt, rlt2);
+        println! ("Dns : {:?}", dns);
     }
 
     #[test]
@@ -96,5 +100,6 @@ mod tests {
         let rlt2 = dns.get_sock_addr(&"www.yahoo.com".to_string());
         assert_ne!(None, rlt2);
         assert_ne!(rlt, rlt2);
+        println! ("Dns : {:?}", dns);
     }
 }
