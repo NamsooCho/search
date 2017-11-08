@@ -82,13 +82,16 @@ mod tests {
     }
 
     #[test]
-    fn get_google2() {
+    fn get_google3() {
         let mut dns = Dns::new();
         let rlt = dns.get_sock_addr(&"www.google.com".to_string());
         assert_ne!(None, rlt);
         let rlt2 = dns.get_sock_addr(&"www.google.com".to_string());
         assert_ne!(None, rlt2);
         assert_eq!(rlt, rlt2);
+        let rlt3 = dns.get_sock_addr(&"www.google.com".to_string());
+        assert_ne!(None, rlt3);
+        assert_eq!(rlt, rlt3);
         println! ("Dns : {:?}", dns);
     }
 
