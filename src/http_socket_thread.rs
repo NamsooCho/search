@@ -11,7 +11,7 @@ use std::time::Duration;
 use std::thread;
 
 use sync_q::SyncQ;
-use url_parser::Url;
+use url_parser::MyUrl;
 use cookie::Cookie;
 use html_parser::HtmlParser;
 use http_parser::HttpParser;
@@ -23,7 +23,7 @@ pub struct HttpSocketThread {
     continue_: bool,
     url_q: Arc<Mutex<SyncQ>>,
     output_: String,
-    redir_history: BTreeSet<Url>,
+    redir_history: BTreeSet<MyUrl>,
     cookie_: Arc<Mutex<Cookie>>,
     dns_: Dns,
     http_parser_: HttpParser,
@@ -48,7 +48,7 @@ impl HttpSocketThread {
         }
     }
 
-    fn check_redir (&mut self, url: &Url) -> bool {
+    fn check_redir (&mut self, url: &MyUrl) -> bool {
         if self.redir_history.contains(url) {
             return false;
         } else {
@@ -129,7 +129,7 @@ impl HttpSocketThread {
         self.http_parser_.is_ok()
     }
 
-    fn request (&mut self, url: &mut Url) -> bool {
+    fn request (&mut self, url: &mut MyUrl) -> bool {
         if url.empty() {
             return false;
         }
@@ -218,7 +218,7 @@ impl HttpSocketThread {
                 break;
             }
             
-            let mut url: Url = self.url_q.lock().unwrap().get_next_url ();
+            let mut url: MyUrl = self.url_q.lock().unwrap().get_next_url ();
             if url.empty() {
                 thread::sleep(Duration::from_secs(3));
                 continue;

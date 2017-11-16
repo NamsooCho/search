@@ -1,5 +1,5 @@
 use multimap::MultiMap;
-use url_parser::Url;
+use url_parser::MyUrl;
 use std::fmt;
 use time;
 
@@ -39,7 +39,7 @@ impl Cookie {
         
     }
 */
-    pub fn insert (&mut self, cookie_arr: &Vec<String>, url: &Url) {
+    pub fn insert (&mut self, cookie_arr: &Vec<String>, url: &MyUrl) {
         for c in cookie_arr.iter() {
             self.parse (&c, &url);
         }
@@ -56,7 +56,7 @@ impl Cookie {
         expire < now
     }
 
-    pub fn get_cookie (&mut self, url: &Url) -> String {
+    pub fn get_cookie (&mut self, url: &MyUrl) -> String {
         let mut result = String::new();
 
         if url.empty() {
@@ -116,7 +116,7 @@ impl Cookie {
         return "".to_string();
     }
 
-    pub fn parse (&mut self, cookie: &String, url: &Url) {
+    pub fn parse (&mut self, cookie: &String, url: &MyUrl) {
         if cookie.is_empty() {
             return;
         }

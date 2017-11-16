@@ -1,11 +1,11 @@
 use std::collections::{VecDeque, BTreeSet};
-use url_parser::{Url, Range};
-use num::FromPrimitive;
+use url_parser::{MyUrl,Range};
+//use num::FromPrimitive;
 
 #[derive(Debug, Clone)]
 pub struct SyncQ {
-    url: VecDeque<Url>,
-    url_history: BTreeSet<Url>,
+    url: VecDeque<MyUrl>,
+    url_history: BTreeSet<MyUrl>,
     limit_: u32
 }
 
@@ -16,9 +16,9 @@ impl SyncQ {
             url_history: BTreeSet::new(),
             limit_: 0
         };
-        let parser = Url::new();
-        let mut url = Url::new();
-        parser.parse(&mut seed.clone(), &mut url);
+        let mut parser = MyUrl::new();
+        let url = MyUrl::new();
+        parser.parse(&seed.clone());
         s.url_history.insert(url.clone());
         s.url.push_back(url);
         s.limit_ = limit;
@@ -29,30 +29,26 @@ impl SyncQ {
         self.url.len() as u32 > self.limit_
     }
 
-    pub fn get_next_url (&mut self) -> Url {
+    pub fn get_next_url (&mut self) -> MyUrl {
         let u = match self.url.pop_front() {
             Some(x) => x,
-            None    => Url::new(),
+            None    => MyUrl::new(),
         };
         u
     }
 
-    pub fn insert (&mut self,  base_url: &mut Url, url_list: &mut Vec<String>) {
-        for mut elem in url_list.iter_mut() {
-            let mut url: Url = Url::new();
-            base_url.parse(&mut elem, &mut url);
-            base_url.get_abs_path(&url);
+    pub fn insert (&mut self,  base_url: &mut MyUrl, url_list: &mut Vec<String>) {
+        for elem in url_list.iter_mut() {
+            let mut url: MyUrl = MyUrl::new();
+            base_url.parse(&elem);
+            base_url.get_abs_path(&mut url);
             if !url.filter() {
                 continue;
             }
 
-            let mut temp: Url = Url::new();
-            let range = match Range::from_u8(Range::SCHEME as u8 | Range::NETLOC as u8 | Range::PATH as u8) {
-                Some(x) => x,
-                None => Range::NONE
-            };
-
-            url.parse(&mut url.get_url(range), &mut temp);
+            let temp: MyUrl = MyUrl::new();
+            let url_str = url.get_url_str(Range::SCHEME as u8 | Range::NETLOC as u8 | Range::PATH as u8);
+            url.parse(&url_str);
             if !self.url_history.contains(&temp) {
                 self.url_history.insert(temp.clone());
                 self.url.push_back(temp.clone());

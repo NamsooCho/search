@@ -12,6 +12,7 @@ extern crate enum_primitive;
 extern crate num;
 extern crate time;
 extern crate openssl;
+extern crate url;
 
 mod http_socket_thread;
 mod sync_q;

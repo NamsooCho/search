@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::net;
-use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr};
+use std::net::{SocketAddr,SocketAddrV4};
 
 #[derive(Debug, Clone,PartialEq,Eq)]
 pub struct Dns {
@@ -45,6 +45,7 @@ impl Dns {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::Ipv4Addr;
 
     #[test]
     fn get_localhost() {
