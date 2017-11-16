@@ -117,3 +117,37 @@ impl MyUrl {
         self.url_.clone().unwrap().path().to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chk_parse1() {
+        let mut url = MyUrl::new();
+        url.parse(&"http://www.jyoungsoft.com".to_string());
+        assert_ne!(None, url.url_.clone());
+        assert_eq!(url.url_.clone().unwrap().host_str().unwrap(), "www.jyoungsoft.com".to_string());
+        println! ("MyUrl : {:?}", url.url_);
+    }
+
+    #[test]
+    fn chk_parse2() {
+        let mut url1 = MyUrl::new();
+        let mut url2 = MyUrl::new();
+        url1.parse(&"http://www.jyoungsoft.com:8080/aaa/bbb/1.html?param=aaa&param2=bbb".to_string());
+        assert_ne!(None, url1.url_.clone());
+        assert_eq!(url1.url_.clone().unwrap().host_str().unwrap(), "www.jyoungsoft.com".to_string());
+        println! ("MyUrl : {:?}", url1.url_.clone());
+
+        url2.parse(&"http://www.jyoungsoft.com:8080/aaa/bbb/ccc/2.html?param=aaa&param2=bbb".to_string());
+        assert_ne!(None, url2.url_.clone());
+        assert_eq!(url2.url_.clone().unwrap().host_str().unwrap(), "www.jyoungsoft.com".to_string());
+        println! ("MyUrl : {:?}", url2.url_.clone());
+
+        assert_ne!(url1, url2);
+        assert_eq!(url1.url_.clone().unwrap().port(), url2.url_.clone().unwrap().port());
+        assert_eq!(url1.url_.clone().unwrap().scheme(), url2.url_.clone().unwrap().scheme());
+        assert_ne!(url1.url_.clone().unwrap().path(), url2.url_.clone().unwrap().path());
+    }
+}
