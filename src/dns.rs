@@ -68,7 +68,6 @@ mod tests {
     fn get_jysoft() { // if you test using big size site like 'www.google.com', beware that big site has multiple ip address.
         let mut dns = Dns::new();
         let rlt = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
-        assert_ne!(None, rlt);
         assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt.unwrap().ip());
         println! ("Dns : {:?}", dns);
     }
@@ -77,15 +76,10 @@ mod tests {
     fn get_jysoft3() {
         let mut dns = Dns::new();
         let rlt = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
-        assert_ne!(None, rlt);
         assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt.unwrap().ip());
         let rlt2 = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
-        assert_ne!(None, rlt2);
-        assert_eq!(rlt, rlt2);
         assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt2.unwrap().ip());
         let rlt3 = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
-        assert_ne!(None, rlt3);
-        assert_eq!(rlt, rlt3);
         assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt3.unwrap().ip());
         println! ("Dns : {:?}", dns);
     }
@@ -94,11 +88,8 @@ mod tests {
     fn get_jysoft_okky() {
         let mut dns = Dns::new();
         let rlt = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
-        assert_ne!(None, rlt);
         assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt.unwrap().ip());
         let rlt2 = dns.get_sock_addr(&"www.okky.kr".to_string());
-        assert_ne!(None, rlt2);
-        assert_ne!(rlt, rlt2);
         assert_eq!(&Ipv4Addr::new(111,92,191,51), rlt2.unwrap().ip());
         println! ("Dns : {:?}", dns);
     }
