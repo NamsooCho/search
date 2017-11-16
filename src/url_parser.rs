@@ -54,35 +54,33 @@ impl MyUrl {
     pub fn get_url_str(&self, range: u8) -> String {
         //let range: u8 = range_ as u8;
         let mut url = String::new();
-        let sf = self.clone();
-        if range & Range::SCHEME as u8 == Range::SCHEME as u8 && !sf.url_.clone().unwrap().scheme().is_empty() {
-            url = sf.url_.clone().unwrap().scheme().to_string() + ":";
+        if range & Range::SCHEME as u8 == Range::SCHEME as u8 && !self.url_.clone().unwrap().scheme().is_empty() {
+            url = self.url_.clone().unwrap().scheme().to_string() + ":";
         }
-        if range & Range::NETLOC as u8 == Range::NETLOC as u8 && !sf.url_.clone().unwrap().host_str().unwrap().is_empty() {
-            url = url + "//" + &sf.url_.clone().unwrap().host_str().unwrap();
+        if range & Range::NETLOC as u8 == Range::NETLOC as u8 && !self.url_.clone().unwrap().host_str().unwrap().is_empty() {
+            url = url + "//" + &self.url_.clone().unwrap().host_str().unwrap();
         }
-        if range & Range::NETLOC as u8 == Range::NETLOC as u8 && sf.url_.clone().unwrap().port().unwrap() != DEFAULT_PORT {
-            url = url + ":" + &sf.url_.clone().unwrap().port().unwrap().to_string();
+        if range & Range::NETLOC as u8 == Range::NETLOC as u8 && self.url_.clone().unwrap().port().unwrap() != DEFAULT_PORT {
+            url = url + ":" + &self.url_.clone().unwrap().port().unwrap().to_string();
         }
         if range & Range::PATH as u8 == Range::PATH as u8 {
-            url = url + &sf.url_.clone().unwrap().path();
+            url = url + &self.url_.clone().unwrap().path();
         }
 /*        if range & Range::PARAM as u8 == Range::PARAM as u8 && !self.url_.param().is_empty() {
             url = url + ";" + &self.url_.param();
         }
 */
-        if range & Range::QUERY as u8 == Range::QUERY as u8 && sf.url_.clone().unwrap().query() != None {
-            url = url + "?" + &sf.url_.clone().unwrap().query().unwrap();
+        if range & Range::QUERY as u8 == Range::QUERY as u8 && self.url_.clone().unwrap().query() != None {
+            url = url + "?" + &self.url_.clone().unwrap().query().unwrap();
         }
-        if range & Range::FRAGMENT as u8 == Range::FRAGMENT as u8 && sf.url_.clone().unwrap().fragment() != None {
-            url = url + "#" + &sf.url_.clone().unwrap().fragment().unwrap();
+        if range & Range::FRAGMENT as u8 == Range::FRAGMENT as u8 && self.url_.clone().unwrap().fragment() != None {
+            url = url + "#" + &self.url_.clone().unwrap().fragment().unwrap();
         }
         url
     }
 
     pub fn get_scheme (&self) -> String {
-        let sc = self.clone();
-        sc.url_.unwrap().scheme().to_string()
+        self.url_.clone().unwrap().scheme().to_string()
     }
 
     pub fn update (&mut self, new_url: String) {
@@ -116,7 +114,6 @@ impl MyUrl {
     }
 
     pub fn get_path (&self) -> String {
-        let path = self.clone();
-        path.url_.unwrap().path().to_string()
+        self.url_.clone().unwrap().path().to_string()
     }
 }
