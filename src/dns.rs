@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::net;
-use std::net::{SocketAddr,SocketAddrV4};
+use std::net::{SocketAddr,SocketAddrV4,Ipv4Addr};
 
 #[derive(Debug, Clone,PartialEq,Eq)]
 pub struct Dns {
@@ -15,39 +15,30 @@ impl Dns {
     }
 
     pub fn get_sock_addr (&mut self, host: &String) -> Option<SocketAddrV4> {
-        let addr_rlt = match self.cache_.get(host) {
-            Some(addr) => {
-                return Some(*addr);
+        match self.cache_.get(host) {       // if domain exists in cache, returns with the value
+            Some(a) => {
+                return Some(*a);
             },
-            None => {
-                match net::lookup_host (&host) {
-                    Ok(a) => {
-                        let addrs: Vec<SocketAddr> = a.collect();
-                        if addrs.len() != 0
-                        {
-                            let addr = match addrs[0] {
-                                SocketAddr::V4(x) => Some(x),
-                                SocketAddr::V6(_) => None,
-                            };
-                            addr
-                        }
-                        else {
-                            None
-                        }
-                    },
-                    Err(msg) => {
-                        error! ("lookup host error. {}", msg);
-                        None
-                    },
+            None => { ; },
+        };
+        // must separate logic into two blocks because self.cache_ is barrowed mutably
+        match net::lookup_host (&host) {
+            Ok(a) => {
+                for addr in a {
+                    match addr {
+                        SocketAddr::V4(x) => { 
+                            self.cache_.insert (host.clone(), x.clone());
+                            return Some(x);
+                        },
+                        SocketAddr::V6(_) => { continue; },
+                    };
                 }
             },
+            Err(msg) => {
+                error! ("lookup host error. {}", msg);
+            },
         };
-
-        if addr_rlt != None
-        {
-            self.cache_.insert (host.clone(), addr_rlt.unwrap().clone());
-        }
-        addr_rlt
+        None
     }
 }
 
@@ -74,35 +65,41 @@ mod tests {
     }
 
     #[test]
-    fn get_google() {
+    fn get_jysoft() {
         let mut dns = Dns::new();
-        let rlt = dns.get_sock_addr(&"www.google.com".to_string());
+        let rlt = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
         assert_ne!(None, rlt);
+        assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt.unwrap().ip());
         println! ("Dns : {:?}", dns);
     }
 
     #[test]
-    fn get_google3() {
+    fn get_jysoft3() {
         let mut dns = Dns::new();
-        let rlt = dns.get_sock_addr(&"www.google.com".to_string());
+        let rlt = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
         assert_ne!(None, rlt);
-        let rlt2 = dns.get_sock_addr(&"www.google.com".to_string());
+        assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt.unwrap().ip());
+        let rlt2 = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
         assert_ne!(None, rlt2);
         assert_eq!(rlt, rlt2);
-        let rlt3 = dns.get_sock_addr(&"www.google.com".to_string());
+        assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt2.unwrap().ip());
+        let rlt3 = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
         assert_ne!(None, rlt3);
         assert_eq!(rlt, rlt3);
+        assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt3.unwrap().ip());
         println! ("Dns : {:?}", dns);
     }
 
     #[test]
-    fn get_google_yahoo() {
+    fn get_jysoft_okky() {
         let mut dns = Dns::new();
-        let rlt = dns.get_sock_addr(&"www.google.com".to_string());
+        let rlt = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
         assert_ne!(None, rlt);
-        let rlt2 = dns.get_sock_addr(&"www.yahoo.com".to_string());
+        assert_eq!(&Ipv4Addr::new(210,180,0,153), rlt.unwrap().ip());
+        let rlt2 = dns.get_sock_addr(&"www.okky.kr".to_string());
         assert_ne!(None, rlt2);
         assert_ne!(rlt, rlt2);
+        assert_eq!(&Ipv4Addr::new(111,92,191,51), rlt2.unwrap().ip());
         println! ("Dns : {:?}", dns);
     }
 }
