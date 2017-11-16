@@ -65,7 +65,7 @@ mod tests {
     }
 
     #[test]
-    fn get_jysoft() {
+    fn get_jysoft() { // if you test using big size site like 'www.google.com', beware that big site has multiple ip address.
         let mut dns = Dns::new();
         let rlt = dns.get_sock_addr(&"www.jyoungsoft.com".to_string());
         assert_ne!(None, rlt);
