@@ -47,12 +47,10 @@ impl MyUrl {
     }
 
     pub fn get_net_loc (&self) -> String {
-        let sf = self.clone();
-        sf.url_.unwrap().host().unwrap().to_string()
+        self.url_.clone().unwrap().host().unwrap().to_string()
     }
 
     pub fn get_url_str(&self, range: u8) -> String {
-        //let range: u8 = range_ as u8;
         let mut url = String::new();
         if range & Range::SCHEME as u8 == Range::SCHEME as u8 && !self.url_.clone().unwrap().scheme().is_empty() {
             url = self.url_.clone().unwrap().scheme().to_string() + ":";
@@ -145,9 +143,78 @@ mod tests {
         assert_eq!(url2.url_.clone().unwrap().host_str().unwrap(), "www.jyoungsoft.com".to_string());
         println! ("MyUrl : {:?}", url2.url_.clone());
 
+        assert_eq!(url1.url_.clone().unwrap().port(), Some(8080));
+        assert_eq!(url1.url_.clone().unwrap().scheme(), "http");
+        assert_eq!(url1.url_.clone().unwrap().path(), "/aaa/bbb/1.html");
+
         assert_ne!(url1, url2);
         assert_eq!(url1.url_.clone().unwrap().port(), url2.url_.clone().unwrap().port());
         assert_eq!(url1.url_.clone().unwrap().scheme(), url2.url_.clone().unwrap().scheme());
         assert_ne!(url1.url_.clone().unwrap().path(), url2.url_.clone().unwrap().path());
+    }
+
+    #[test]
+    fn chk_get_abs_path1() {
+        let mut url1 = MyUrl::new();
+        url1.parse(&"http://www.jyoungsoft.com:8080/aaa/bbb/1.html?param=aaa&param2=bbb".to_string());
+        println! ("MyUrl : {:?}", url1.url_.clone());
+        let mut url3 = MyUrl::new();
+        let url2 = url1.get_abs_path (&mut url3);
+
+        assert_eq!(url2.url_.clone().unwrap().host_str().unwrap(), "www.jyoungsoft.com".to_string());
+        assert_eq!(url2.url_.clone().unwrap().port(), Some(8080));
+        assert_eq!(url2.url_.clone().unwrap().scheme(), "http");
+        assert_eq!(url2.url_.clone().unwrap().path(), "/aaa/bbb/1.html");
+
+        assert_eq!(url3.url_.clone().unwrap().host_str().unwrap(), "www.jyoungsoft.com".to_string());
+        assert_eq!(url3.url_.clone().unwrap().port(), Some(8080));
+        assert_eq!(url3.url_.clone().unwrap().scheme(), "http");
+        assert_eq!(url3.url_.clone().unwrap().path(), "/aaa/bbb/1.html");
+    }
+
+    #[test]
+    fn chk_compare_netloc1() {
+        let url1 = MyUrl::new();
+        let rlt = url1.compare_netloc(&"http://www.jyoungsoft.com:8080/aaa/bbb/1.html?param=aaa&param2=bbb".to_string(),
+            &"http://www.jyoungsoft.com:8080/aaa/bbb/2.html?param=aaa&param2=bbb".to_string());
+        let rlt2 = url1.compare_netloc(&"http://www.jyoungsoft.com:8080/aaa/bbb/1.html?param=aaa&param2=bbb".to_string(),
+            &"http://www.jyoungsoft.com:8088/aaa/bbb/2.html?param=aaa&param2=bbb".to_string());
+        assert_eq!(rlt, true);
+        assert_eq!(rlt2, false);
+    }
+
+    #[test]
+    fn chk_update1() {
+        let mut url1 = MyUrl::new();
+        url1.parse(&"http://www.jyoungsoft.com:8080/aaa/bbb/1.html?param=aaa&param2=bbb".to_string());
+        println! ("MyUrl : {:?}", url1.url_.clone());
+        let url2 = url1.clone();
+
+        url1.update("http://www.jyoungsoft.com:8088/aaa/bbb/ccc/2.html?param=aaa&param2=bbb".to_string());
+        assert_ne!(None, url1.url_.clone());
+        assert_eq!(url1.url_.clone().unwrap().host_str().unwrap(), "www.jyoungsoft.com".to_string());
+        println! ("MyUrl : {:?}", url1.url_.clone());
+
+        assert_eq!(url1.url_.clone().unwrap().port(), Some(8088));
+        assert_eq!(url1.url_.clone().unwrap().scheme(), "http");
+        assert_eq!(url1.url_.clone().unwrap().path(), "/aaa/bbb/ccc/2.html");
+
+        assert_ne!(url1, url2);
+        assert_ne!(url1.url_.clone().unwrap().port(), url2.url_.clone().unwrap().port());
+        assert_eq!(url1.url_.clone().unwrap().scheme(), url2.url_.clone().unwrap().scheme());
+        assert_ne!(url1.url_.clone().unwrap().path(), url2.url_.clone().unwrap().path());
+    }
+
+    #[test]
+    fn chk_get_url_str1() {
+        let mut url1 = MyUrl::new();
+        url1.parse(&"http://www.jyoungsoft.com:8080/aaa/bbb/1.html?param=aaa&param2=bbb".to_string());
+        println! ("MyUrl : {:?}", url1.url_.clone());
+
+        assert_eq!(url1.get_url_str(Range::SCHEME as u8), "http:");
+        assert_eq!(url1.get_url_str(Range::SCHEME as u8 | Range::NETLOC as u8), "http://www.jyoungsoft.com:8080");
+        assert_eq!(url1.get_url_str(Range::SCHEME as u8| Range::NETLOC as u8 | Range::PATH as u8), "http://www.jyoungsoft.com:8080/aaa/bbb/1.html");
+        assert_eq!(url1.get_url_str(Range::SCHEME as u8| Range::NETLOC as u8 | Range::PATH as u8 | Range::QUERY as u8),
+            "http://www.jyoungsoft.com:8080/aaa/bbb/1.html?param=aaa&param2=bbb");
     }
 }
