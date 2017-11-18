@@ -4,16 +4,16 @@ use std::clone::Clone;
 const DEFAULT_PORT: u16 = 80;
 
 bitflags! {
-    flags Range: u8 {
-        const SCHEME = 0x01,
-        const NETLOC = 0x02,
-        const PATH = 0x04,
-        const PARAM = 0x08,
-        const QUERY = 0x10,
-        const FRAGMENT = 0x20,
-        const ALL = 0xFF,
-        const NONE = 0x00,
-        const SCHEME_NETLOC_PATH = 0x07,
+    struct Range: u8 {
+        const SCHEME = 0x01;
+        const NETLOC = 0x02;
+        const PATH = 0x04;
+        const PARAM = 0x08;
+        const QUERY = 0x10;
+        const FRAGMENT = 0x20;
+        const ALL = 0xFF;
+        const NONE = 0x00;
+        const SCHEME_NETLOC_PATH = 0x07;
     }
 }
 
