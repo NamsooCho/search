@@ -16,21 +16,7 @@ use cookie::Cookie;
 use html_parser::HtmlParser;
 use http_parser::HttpParser;
 use dns::Dns;
-//use url_parser::Range;
-
-bitflags! {
-    flags Range: u8 {
-        const SCHEME = 0x01,
-        const NETLOC = 0x02,
-        const PATH = 0x04,
-        const PARAM = 0x08,
-        const QUERY = 0x10,
-        const FRAGMENT = 0x20,
-        const ALL = 0xFF,
-        const NONE = 0x00,
-        const SCHEME_NETLOC_PATH = 0x07,
-    }
-}
+use url_parser::Range;
 
 #[derive(Debug, Clone)]
 pub struct HttpSocketThread {
@@ -169,7 +155,7 @@ impl HttpSocketThread {
                     let send_data;
                     let cook = self.cookie_.lock().unwrap().get_cookie(url);
                     send_data = self.make_http_header (
-                        url.get_url_str(PATH.bits | PARAM.bits | QUERY.bits),
+                        url.get_url_str(Range::PATH.bits() | Range::PARAM.bits() | Range::QUERY.bits()),
                         url.get_net_loc(), cook);
 
                     let mut tcp_s = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {

@@ -4,7 +4,7 @@ use std::clone::Clone;
 const DEFAULT_PORT: u16 = 80;
 
 bitflags! {
-    struct Range: u8 {
+    pub struct Range: u8 {
         const SCHEME = 0x01;
         const NETLOC = 0x02;
         const PATH = 0x04;
@@ -51,26 +51,26 @@ impl MyUrl {
 
     pub fn get_url_str(&self, range: u8) -> String {
         let mut url = String::new();
-        if range & SCHEME.bits == SCHEME.bits && !self.url_.clone().unwrap().scheme().is_empty() {
+        if range & Range::SCHEME.bits == Range::SCHEME.bits && !self.url_.clone().unwrap().scheme().is_empty() {
             url = self.url_.clone().unwrap().scheme().to_string() + ":";
         }
-        if range & NETLOC.bits == NETLOC.bits && !self.url_.clone().unwrap().host_str().unwrap().is_empty() {
+        if range & Range::NETLOC.bits == Range::NETLOC.bits && !self.url_.clone().unwrap().host_str().unwrap().is_empty() {
             url = url + "//" + &self.url_.clone().unwrap().host_str().unwrap();
         }
-        if range & NETLOC.bits == NETLOC.bits && self.url_.clone().unwrap().port().unwrap() != DEFAULT_PORT {
+        if range & Range::NETLOC.bits == Range::NETLOC.bits && self.url_.clone().unwrap().port().unwrap() != DEFAULT_PORT {
             url = url + ":" + &self.url_.clone().unwrap().port().unwrap().to_string();
         }
-        if range & PATH.bits == PATH.bits {
+        if range & Range::PATH.bits == Range::PATH.bits {
             url = url + &self.url_.clone().unwrap().path();
         }
 /*        if range & Range::PARAM as u8 == Range::PARAM as u8 && !self.url_.param().is_empty() {
             url = url + ";" + &self.url_.param();
         }
 */
-        if range & QUERY.bits == QUERY.bits && self.url_.clone().unwrap().query() != None {
+        if range & Range::QUERY.bits == Range::QUERY.bits && self.url_.clone().unwrap().query() != None {
             url = url + "?" + &self.url_.clone().unwrap().query().unwrap();
         }
-        if range & FRAGMENT.bits == FRAGMENT.bits && self.url_.clone().unwrap().fragment() != None {
+        if range & Range::FRAGMENT.bits == Range::FRAGMENT.bits && self.url_.clone().unwrap().fragment() != None {
             url = url + "#" + &self.url_.clone().unwrap().fragment().unwrap();
         }
         url
