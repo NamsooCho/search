@@ -1,6 +1,20 @@
 use std::collections::{VecDeque, BTreeSet};
-use url_parser::{MyUrl,Range};
+use url_parser::{MyUrl};
 //use num::FromPrimitive;
+
+bitflags! {
+    flags Range: u8 {
+        const SCHEME = 0x01,
+        const NETLOC = 0x02,
+        const PATH = 0x04,
+        const PARAM = 0x08,
+        const QUERY = 0x10,
+        const FRAGMENT = 0x20,
+        const ALL = 0xFF,
+        const NONE = 0x00,
+        const SCHEME_NETLOC_PATH = 0x07,
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct SyncQ {
@@ -47,7 +61,7 @@ impl SyncQ {
             }
 
             let temp: MyUrl = MyUrl::new();
-            let url_str = url.get_url_str(Range::SCHEME as u8 | Range::NETLOC as u8 | Range::PATH as u8);
+            let url_str = url.get_url_str(SCHEME.bits | NETLOC.bits | PATH.bits);
             url.parse(&url_str);
             if !self.url_history.contains(&temp) {
                 self.url_history.insert(temp.clone());

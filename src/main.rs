@@ -1,4 +1,5 @@
 #![feature(lookup_host)]
+#![feature(rustc_private)]
 extern crate getopts;
 extern crate multimap;
 use getopts::Options;
@@ -13,6 +14,8 @@ extern crate num;
 extern crate time;
 extern crate openssl;
 extern crate url;
+#[macro_use]
+extern crate bitflags;
 
 mod http_socket_thread;
 mod sync_q;

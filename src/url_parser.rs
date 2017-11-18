@@ -2,21 +2,20 @@ use url::Url;
 use std::clone::Clone;
 
 const DEFAULT_PORT: u16 = 80;
-enum_from_primitive! {
-#[derive(Debug, PartialEq)]
-    pub enum Range {
-        SCHEME = 0x01,
-        NETLOC = 0x02,
-        PATH = 0x04,
-        PARAM = 0x08,
-        QUERY = 0x10,
-        FRAGMENT = 0x20,
-        ALL = 0xFF,
-        NONE = 0x00,
-        SchemeNetlocPath = 0x07,
+
+bitflags! {
+    flags Range: u8 {
+        const SCHEME = 0x01,
+        const NETLOC = 0x02,
+        const PATH = 0x04,
+        const PARAM = 0x08,
+        const QUERY = 0x10,
+        const FRAGMENT = 0x20,
+        const ALL = 0xFF,
+        const NONE = 0x00,
+        const SCHEME_NETLOC_PATH = 0x07,
     }
 }
-
 
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq,Hash,)]
 pub struct MyUrl {
@@ -52,26 +51,26 @@ impl MyUrl {
 
     pub fn get_url_str(&self, range: u8) -> String {
         let mut url = String::new();
-        if range & Range::SCHEME as u8 == Range::SCHEME as u8 && !self.url_.clone().unwrap().scheme().is_empty() {
+        if range & SCHEME.bits == SCHEME.bits && !self.url_.clone().unwrap().scheme().is_empty() {
             url = self.url_.clone().unwrap().scheme().to_string() + ":";
         }
-        if range & Range::NETLOC as u8 == Range::NETLOC as u8 && !self.url_.clone().unwrap().host_str().unwrap().is_empty() {
+        if range & NETLOC.bits == NETLOC.bits && !self.url_.clone().unwrap().host_str().unwrap().is_empty() {
             url = url + "//" + &self.url_.clone().unwrap().host_str().unwrap();
         }
-        if range & Range::NETLOC as u8 == Range::NETLOC as u8 && self.url_.clone().unwrap().port().unwrap() != DEFAULT_PORT {
+        if range & NETLOC.bits == NETLOC.bits && self.url_.clone().unwrap().port().unwrap() != DEFAULT_PORT {
             url = url + ":" + &self.url_.clone().unwrap().port().unwrap().to_string();
         }
-        if range & Range::PATH as u8 == Range::PATH as u8 {
+        if range & PATH.bits == PATH.bits {
             url = url + &self.url_.clone().unwrap().path();
         }
 /*        if range & Range::PARAM as u8 == Range::PARAM as u8 && !self.url_.param().is_empty() {
             url = url + ";" + &self.url_.param();
         }
 */
-        if range & Range::QUERY as u8 == Range::QUERY as u8 && self.url_.clone().unwrap().query() != None {
+        if range & QUERY.bits == QUERY.bits && self.url_.clone().unwrap().query() != None {
             url = url + "?" + &self.url_.clone().unwrap().query().unwrap();
         }
-        if range & Range::FRAGMENT as u8 == Range::FRAGMENT as u8 && self.url_.clone().unwrap().fragment() != None {
+        if range & FRAGMENT.bits == FRAGMENT.bits && self.url_.clone().unwrap().fragment() != None {
             url = url + "#" + &self.url_.clone().unwrap().fragment().unwrap();
         }
         url
