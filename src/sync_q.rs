@@ -47,6 +47,11 @@ impl SyncQ {
             if new_url == None {
                 continue;
             }
+            else {
+                if new_url.clone().unwrap().scheme() != "http" && new_url.clone().unwrap().scheme() != "https" {
+                    continue;
+                }
+            }
 
             if !self.url_history.contains(&new_url) {
                 self.url_history.insert(new_url.clone());
