@@ -34,6 +34,14 @@ impl MyUrl {
             Ok(u) => Some(u),
             Err(_) => None,
         };
+
+        if self.url_ == None {
+            return;
+        }
+
+        if self.url_.clone().unwrap().scheme() != "http" && self.url_.clone().unwrap().scheme() != "https" {
+            self.url_ = None;
+        }
     }
 
     pub fn empty (&self) -> bool {
@@ -54,10 +62,10 @@ impl MyUrl {
         if range & Range::SCHEME.bits == Range::SCHEME.bits && !self.url_.clone().unwrap().scheme().is_empty() {
             url = self.url_.clone().unwrap().scheme().to_string() + ":";
         }
-        if range & Range::NETLOC.bits == Range::NETLOC.bits && !self.url_.clone().unwrap().host_str().unwrap().is_empty() {
+        if range & Range::NETLOC.bits == Range::NETLOC.bits && self.url_.clone().unwrap().host_str() != None {
             url = url + "//" + &self.url_.clone().unwrap().host_str().unwrap();
         }
-        if range & Range::NETLOC.bits == Range::NETLOC.bits && self.url_.clone().unwrap().port().unwrap() != DEFAULT_PORT {
+        if range & Range::NETLOC.bits == Range::NETLOC.bits && self.url_.clone().unwrap().port() != None {
             url = url + ":" + &self.url_.clone().unwrap().port().unwrap().to_string();
         }
         if range & Range::PATH.bits == Range::PATH.bits {

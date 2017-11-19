@@ -16,9 +16,9 @@ impl SyncQ {
             url_history: BTreeSet::new(),
             limit_: 0
         };
-        let mut parser = MyUrl::new();
-        let url = MyUrl::new();
-        parser.parse(&seed.clone());
+//        let mut parser = MyUrl::new();
+        let mut url = MyUrl::new();
+        url.parse(&seed.clone());
         s.url_history.insert(url.clone());
         s.url.push_back(url);
         s.limit_ = limit;
@@ -39,19 +39,14 @@ impl SyncQ {
 
     pub fn insert (&mut self,  base_url: &mut MyUrl, url_list: &mut Vec<String>) {
         for elem in url_list.iter_mut() {
-            let mut url: MyUrl = MyUrl::new();
             base_url.parse(&elem);
-            base_url.get_abs_path(&mut url);
-            if !url.filter() {
+            if !base_url.filter() {
                 continue;
             }
 
-            let temp: MyUrl = MyUrl::new();
-            let url_str = url.get_url_str(Range::SCHEME.bits() | Range::NETLOC.bits() | Range::PATH.bits());
-            url.parse(&url_str);
-            if !self.url_history.contains(&temp) {
-                self.url_history.insert(temp.clone());
-                self.url.push_back(temp.clone());
+            if !self.url_history.contains(&base_url) {
+                self.url_history.insert(base_url.clone());
+                self.url.push_back(base_url.clone());
             }
         }
     }
