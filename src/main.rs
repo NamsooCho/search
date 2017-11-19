@@ -8,18 +8,13 @@ use std::thread;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-#[macro_use] 
-extern crate enum_primitive;
 extern crate num;
 extern crate time;
 extern crate openssl;
 extern crate url;
-#[macro_use]
-extern crate bitflags;
 
 mod http_socket_thread;
 mod sync_q;
-mod url_parser;
 mod cookie;
 mod http_parser;
 mod html_parser;
@@ -67,7 +62,7 @@ fn main() {
 
     let q_limit: u32 = match matches.opt_str("q") {
         Some(x) => x.parse().unwrap(),
-        None => 1000,
+        None => 10000,
     };
 
     let seed = match matches.opt_str("s") {
