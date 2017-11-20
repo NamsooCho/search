@@ -4,7 +4,6 @@ use std::net::TcpStream;
 use std::error::Error;
 use std::collections::{BTreeSet};
 use std::io::prelude::*;
-//use std::net::{SocketAddrV4,Ipv4Addr};
 use openssl::ssl::{SslMethod, SslConnectorBuilder, SslStream};
 use std::sync::{Arc,Mutex};
 use std::time::Duration;
@@ -16,7 +15,20 @@ use cookie::Cookie;
 use html_parser::HtmlParser;
 use http_parser::HttpParser;
 use dns::Dns;
-//use url_parser::Range;
+
+trait Socketable { 
+    fn read_to_end_gen (&mut self, data: &mut Vec<u8>) -> Result<usize, ::std::io::Error>;
+}
+impl Socketable for SslStream<TcpStream> {
+    fn read_to_end_gen (&mut self, data: &mut Vec<u8>) -> Result<usize, ::std::io::Error> {
+        self.read_to_end(data)
+    }
+}
+impl Socketable for TcpStream {
+    fn read_to_end_gen (&mut self, data: &mut Vec<u8>) -> Result<usize, ::std::io::Error> {
+        self.read_to_end(data)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct HttpSocketThread {
@@ -89,14 +101,14 @@ impl HttpSocketThread {
         hdr
     }
 
-    fn recv_data (&mut self, sock: &mut TcpStream)  {
+    fn recv_data<T: Socketable> (&mut self, sock: &mut T)  {
         let mut data = Vec::new();
         let mut done = false;
 
         self.http_parser_.clear();
 
         while !done {
-            let recv_size = sock.read_to_end (&mut data).unwrap();
+            let recv_size = sock.read_to_end_gen (&mut data).unwrap();
             if recv_size <= 0 {
                 self.err_ = "connection closed.".to_string();
                 return;
@@ -111,7 +123,7 @@ impl HttpSocketThread {
             self.err_ = format!("HTTP Error (Response Code: {})", self.http_parser_.get_rep_code());
         }
     }
-
+/*
     fn recv_data_ssl (&mut self, sock: &mut SslStream<TcpStream>)  {
         let mut data = Vec::new();
         let mut done = false;
@@ -134,7 +146,7 @@ impl HttpSocketThread {
             self.err_ = format!("HTTP Error (Response Code: {})", self.http_parser_.get_rep_code());
         }
     }
-
+*/
     fn request (&mut self, url: &mut Option<Url>) -> bool {
         if *url == None {
             return false;
@@ -177,7 +189,7 @@ impl HttpSocketThread {
                         
                         match tcp_ssl.write(send_data.as_bytes())
                         {
-                            Ok(_) => self.recv_data_ssl(&mut tcp_ssl),
+                            Ok(_) => self.recv_data(&mut tcp_ssl),
                             Err(e) => { error! ("Tcp ssl write error {}", e)},
                         };
                     }
