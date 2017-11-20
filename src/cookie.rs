@@ -39,9 +39,9 @@ impl Cookie {
         
     }
 */
-    pub fn insert (&mut self, cookie_arr: &Vec<String>, url: &Option<Url>) {
+    pub fn insert (&mut self, cookie_arr: &Vec<String>, url: &mut Box<Url>) {
         for c in cookie_arr.iter() {
-            self.parse (&c, &url);
+            self.parse (&c, url);
         }
     }
 
@@ -56,16 +56,12 @@ impl Cookie {
         expire < now
     }
 
-    pub fn get_cookie (&mut self, url: &Option<Url>) -> String {
+    pub fn get_cookie (&mut self, url: &mut Box<Url>) -> String {
         let mut result = String::new();
 
-        if *url == None {
-            return result;
-        }
-
         for (key, value) in self.cookie_.clone().iter_mut() {
-            if (url.clone().unwrap().host_str().unwrap() == value.domain_ || url.clone().unwrap().host_str().unwrap().contains(&value.domain_))
-                && !url.clone().unwrap().path().contains(&value.path_) {
+            if (url.host_str().unwrap() == value.domain_ || url.host_str().unwrap().contains(&value.domain_))
+                && !url.path().contains(&value.path_) {
                 if value.expires_.is_empty() || !self.is_expired (&value.expires_) {
                     result = result + &key + &"=" + &value.value_ + &"; ";
                 }
@@ -116,7 +112,7 @@ impl Cookie {
         return "".to_string();
     }
 
-    pub fn parse (&mut self, cookie: &String, url: &Option<Url>) {
+    pub fn parse (&mut self, cookie: &String, url: &mut Box<Url>) {
         if cookie.is_empty() {
             return;
         }
@@ -148,7 +144,7 @@ impl Cookie {
         cookie_info.secure_ = self.search_cookie_value(&cookie, &"secure".to_string());
 
         if cookie_info.path_.is_empty() {
-            let mut path = url.clone().unwrap().path().to_string();
+            let mut path = url.path().to_string();
             if path.rfind ('.') != None {
                 let end_pos = path.rfind ('/').unwrap ();
                 path.drain (..end_pos);
@@ -157,7 +153,7 @@ impl Cookie {
         }
 
         if cookie_info.domain_.is_empty() {
-            cookie_info.domain_ = url.clone().unwrap().host_str().unwrap().to_string();
+            cookie_info.domain_ = url.host_str().unwrap().to_string();
         }
 
         if !self.cookie_.contains_key(&name) {

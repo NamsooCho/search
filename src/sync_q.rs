@@ -4,11 +4,18 @@ use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct SyncQ {
-    url: VecDeque<Option<Url>>,
-    url_history: BTreeSet<Option<Url>>,
+    url: VecDeque<Box<Url>>,
+    url_history: BTreeSet<Box<Url>>,
     limit_: u32
 }
-
+/*
+impl Copy for Option<::url::Url> {}
+impl Clone for Option<::url::Url> {
+    fn clone(&self) -> Option<::url::Url> {
+        *self
+    }
+}
+*/
 impl SyncQ {
     pub fn new (seed: &String, limit: u32) -> SyncQ {
         let mut s = SyncQ {
@@ -16,13 +23,12 @@ impl SyncQ {
             url_history: BTreeSet::new(),
             limit_: 0
         };
-        let url = match Url::parse(&seed.clone()) {
-            Ok(u) => Some(u),
-            Err(_) =>None,
-        };
-        s.url_history.insert(url.clone());
-        s.url.push_back(url);
-        s.limit_ = limit;
+        if let Ok(u) = Url::parse(&seed.clone()) {
+            let url  = Box::new(u);
+            s.url_history.insert(url.clone());
+            s.url.push_back(url);
+            s.limit_ = limit;
+        }
         s
     }
 
@@ -30,9 +36,9 @@ impl SyncQ {
         self.url.len() as u32 > self.limit_
     }
 
-    pub fn get_next_url (&mut self) -> Option<Url> {
+    pub fn get_next_url (&mut self) -> Option<Box<Url>> {
         match self.url.pop_front() {
-            Some(x) => x,
+            Some(x) => Some(x),
             None    => None,
         }
     }
@@ -40,25 +46,20 @@ impl SyncQ {
     pub fn insert (&mut self,  base_url: &mut Url, url_list: & Vec<String>) {
         for elem in url_list.iter() {
             let new_url = match Url::parse(&elem) {
-                Ok(u) => Some(u),
+                Ok(u) => Box::new(u),
                 Err(_) => match base_url.join(&elem) {
-                    Ok(u) => Some(u),
-                    Err(_) => None,
+                    Ok(u) => Box::new(u),
+                    Err(_) => {continue;},
                 },
             };
 
-            if new_url == None {
+            if new_url.scheme() != "http" && new_url.scheme() != "https" {
                 continue;
-            }
-            else {
-                if new_url.clone().unwrap().scheme() != "http" && new_url.clone().unwrap().scheme() != "https" {
-                    continue;
-                }
             }
 
             if !self.url_history.contains(&new_url) {
                 self.url_history.insert(new_url.clone());
-                self.url.push_back(new_url.clone());
+                self.url.push_back(new_url);
             }
         }
     }

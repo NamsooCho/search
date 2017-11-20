@@ -35,7 +35,7 @@ pub struct HttpSocketThread {
     continue_: bool,
     url_q: Arc<Mutex<SyncQ>>,
     output_: String,
-    redir_history: BTreeSet<Option<Url>>,
+    redir_history: BTreeSet<Url>,
     cookie_: Arc<Mutex<Cookie>>,
     dns_: Dns,
     http_parser_: HttpParser,
@@ -60,16 +60,16 @@ impl HttpSocketThread {
         }
     }
 
-    fn check_redir (&mut self, url: &Option<Url>) -> bool {
+    fn check_redir (&mut self, url: &mut Box<Url>) -> bool {
         if self.redir_history.contains(url) {
             return false;
         } else {
-            self.redir_history.insert (url.clone());
+            self.redir_history.insert (*url.clone());
         }
         true
     }
 
-    fn make_http_header (&self, url: Url, cookie: String) -> String {
+    fn make_http_header (&self, url: &mut Box<Url>, cookie: String) -> String {
         let host = match url.host_str() {
             Some(h) => h,
             None => { panic!("url broken"); },
@@ -123,49 +123,22 @@ impl HttpSocketThread {
             self.err_ = format!("HTTP Error (Response Code: {})", self.http_parser_.get_rep_code());
         }
     }
-/*
-    fn recv_data_ssl (&mut self, sock: &mut SslStream<TcpStream>)  {
-        let mut data = Vec::new();
-        let mut done = false;
 
-        self.http_parser_.clear();
-
-        while !done {
-            let recv_size = sock.read_to_end (&mut data).unwrap();
-            if recv_size <= 0 {
-                self.err_ = "connection closed.".to_string();
-                return;
-            }
-
-            self.http_parser_.parse(&mut data);
-            done = !self.http_parser_.is_partial();
-            data.clear();
-        }
-
-        if !self.http_parser_.is_ok() && !self.http_parser_.is_redirect() {
-            self.err_ = format!("HTTP Error (Response Code: {})", self.http_parser_.get_rep_code());
-        }
-    }
-*/
-    fn request (&mut self, url: &mut Option<Url>) -> bool {
-        if *url == None {
-            return false;
-        }
-
+    fn request (&mut self, url: &mut Box<Url>) -> bool {
         self.redir_history.clear ();
         let mut done: bool = false;
 
         while !done && self.err_.is_empty() {
-            if !self.check_redir(&url) {
+            if !self.check_redir(url) {
                 break;
             }
 
-            match self.dns_.get_sock_addr (&url.clone().unwrap().host_str().unwrap().to_string()) {
+            match self.dns_.get_sock_addr (&url.host_str().unwrap().to_string()) {
                 Some(addr) => {
                     let ip = addr.ip().octets();
-                    let port = match url.clone().unwrap().port() {
+                    let port = match url.port() {
                         Some(p) => p,
-                        None => match url.clone().unwrap().scheme() {
+                        None => match url.scheme() {
                             "https" => 443,
                             "http" => 80,
                             _ => 80,
@@ -180,12 +153,12 @@ impl HttpSocketThread {
                         },
                     };
 
-                    let cook = self.cookie_.lock().unwrap().get_cookie(&url);
-                    let send_data = self.make_http_header (url.clone().unwrap(), cook);
+                    let cook = self.cookie_.lock().unwrap().get_cookie(url);
+                    let send_data = self.make_http_header (url, cook);
 
-                    if url.clone().unwrap().scheme() == "https" {
+                    if url.scheme() == "https" {
                         let connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap().build();
-                        let mut tcp_ssl: SslStream<TcpStream> = connector.connect(&url.clone().unwrap().host_str().unwrap(), tcp_s).unwrap();
+                        let mut tcp_ssl: SslStream<TcpStream> = connector.connect(&url.host_str().unwrap(), tcp_s).unwrap();
                         
                         match tcp_ssl.write(send_data.as_bytes())
                         {
@@ -201,16 +174,15 @@ impl HttpSocketThread {
                         };
                     }
 
-                    self.cookie_.lock().unwrap().insert(&self.http_parser_.get_cookie(), &url);
+                    self.cookie_.lock().unwrap().insert(&self.http_parser_.get_cookie(), url);
                 },
                 None => {},
             };
 
             if self.http_parser_.is_redirect() && !self.http_parser_.get_location().is_empty() {
-                *url = match Url::parse(&self.http_parser_.get_location()) {
-                    Ok(u) => Some(u),
-                    Err(_) => None,
-                };
+                if let Ok(u) = Url::parse(&self.http_parser_.get_location()) {
+                    *url =  Box::new(u);
+                }
             }
             else {
                 done = true;
@@ -229,11 +201,13 @@ impl HttpSocketThread {
                 break;
             }
             
-            let mut url = self.url_q.lock().unwrap().get_next_url ();
-            if url == None {
+            let url_opt = self.url_q.lock().unwrap().get_next_url ();
+            if url_opt == None {
                 thread::sleep(Duration::from_secs(3));
                 continue;
             }
+
+            let mut url = url_opt.unwrap();
 
             if self.request (&mut url) {
                 self.output_ = self.out_dir_.clone() + &self.thread_idx.to_string() + "_" + &html_cnt.to_string() + ".html";
@@ -248,10 +222,10 @@ impl HttpSocketThread {
                     _ => {;},
                 }
                 html_parser.parse (self.http_parser_.get_body().to_string());
-                self.url_q.lock().unwrap().insert (&mut url.unwrap(), &mut html_parser.extract_link_url_list ());
+                self.url_q.lock().unwrap().insert (&mut url, &mut html_parser.extract_link_url_list ());
             }
             else {
-                error!("{} --> {}", url.unwrap().as_str(), self.err_);
+                error!("{} --> {}", url.as_str(), self.err_);
             }
         }
     }
