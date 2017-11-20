@@ -5,7 +5,7 @@
         "request": "launch",
         "name": "Debug",
         "program": "${workspaceRoot}/target/debug/search",
-        "args": ["-shttps://okky.kr/articles/community", "-c1", "-o/Volumes/DATA/crwaler"],
+        "args": [],
         "cwd": "${workspaceRoot}",
         "preLaunchTask": "cargo",
         "sourceLanguages": ["rust"],
