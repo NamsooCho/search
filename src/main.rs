@@ -25,6 +25,7 @@ use cookie::Cookie;
 use std::sync::{Arc,Mutex};
 use sync_q::SyncQ;
 
+#[derive(Debug, Clone)]
 struct Args {
 //    q_limit_: u32,
     seed_: String,
@@ -95,17 +96,14 @@ fn main() {
 
     info!("crawling start...");
     let mut children = vec![];
-    let mut sock_arr = vec![];
     let cookie_ = Arc::new(Mutex::new(Cookie::new()));
     let queue_ = Arc::new(Mutex::new(SyncQ::new(&arg.seed_, q_limit)));
     for i in 0..arg.sock_cnt_ {
         let cookie = cookie_.clone();
         let queue = queue_.clone();
-        //let mut cookie = cookie_c.lock().unwrap();
-        //let mut queue = queue_c.lock().unwrap();
-        let mut sock = HttpSocketThread::new(&arg.out_dir_);
-        sock_arr.push(sock.clone());
+        let arg_clone = arg.clone();
         children.push(thread::spawn(move || {
+            let mut sock = HttpSocketThread::new(&arg_clone.out_dir_);
             sock.initiate(i as i32, queue, cookie);
         }));
     }

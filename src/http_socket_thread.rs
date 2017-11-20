@@ -196,37 +196,48 @@ impl HttpSocketThread {
 
         let mut html_cnt = 0;
 
+        let mut url_opt;
         while self.continue_ {
-            if self.url_q.lock().unwrap().full () {
-                break;
-            }
-            
-            let url_opt = self.url_q.lock().unwrap().get_next_url ();
-            if url_opt == None {
-                thread::sleep(Duration::from_secs(3));
-                continue;
-            }
-
-            let mut url = url_opt.unwrap();
-
-            if self.request (&mut url) {
-                self.output_ = self.out_dir_.clone() + &self.thread_idx.to_string() + "_" + &html_cnt.to_string() + ".html";
-                html_cnt = html_cnt + 1;
-                let out_path = Path::new(&self.output_);
-                let display = out_path.display();
-                let mut out_file = match File::create(&out_path) {
-                    Ok(f) => f,
-                    Err(why) => panic!("couldn't open {}: {}", display, why.description()),
-                };
-                match out_file.write_all (self.http_parser_.get_body ().as_bytes()) {
-                    _ => {;},
+            loop {
+                {
+                    if self.url_q.lock().unwrap().full () {
+                        self.continue_ = false;
+                        break;
+                    }
                 }
-                html_parser.parse (self.http_parser_.get_body().to_string());
-                self.url_q.lock().unwrap().insert (&mut url, &mut html_parser.extract_link_url_list ());
+                
+                {
+                    url_opt = self.url_q.lock().unwrap().get_next_url ();
+                }
+
+                if url_opt == None {
+                    break;
+                }
+
+                let mut url = url_opt.unwrap();
+
+                if self.request (&mut url) {
+                    self.output_ = self.out_dir_.clone() + &self.thread_idx.to_string() + "_" + &html_cnt.to_string() + ".html";
+                    html_cnt = html_cnt + 1;
+                    let out_path = Path::new(&self.output_);
+                    let display = out_path.display();
+                    let mut out_file = match File::create(&out_path) {
+                        Ok(f) => f,
+                        Err(why) => panic!("couldn't open {}: {}", display, why.description()),
+                    };
+                    match out_file.write_all (self.http_parser_.get_body ().as_bytes()) {
+                        _ => {;},
+                    }
+                    html_parser.parse (self.http_parser_.get_body().to_string());
+                    {
+                        self.url_q.lock().unwrap().insert (&mut url, &mut html_parser.extract_link_url_list ());
+                    }
+                }
+                else {
+                    error!("{} --> {}", url.as_str(), self.err_);
+                }
             }
-            else {
-                error!("{} --> {}", url.as_str(), self.err_);
-            }
+            thread::sleep(Duration::from_secs(3));
         }
     }
 
