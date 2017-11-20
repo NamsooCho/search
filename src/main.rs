@@ -82,7 +82,7 @@ fn main() {
 */
     let sock_cnt: u32 = match matches.opt_str("c") {
         Some(x) => x.parse().unwrap(),
-        None => 2,
+        None => 4,
     };
 
     let arg: Args = Args {

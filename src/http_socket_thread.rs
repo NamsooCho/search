@@ -142,14 +142,11 @@ impl HttpSocketThread {
 
         self.redir_history.clear ();
         let mut done: bool = false;
-        //let mut host = url.unwrap().host_str().clone().unwrap();
 
         while !done && self.err_.is_empty() {
             if !self.check_redir(&url) {
                 break;
             }
-
-            //host = url.unwrap().host_str().unwrap();
 
             match self.dns_.get_sock_addr (&url.clone().unwrap().host_str().unwrap().to_string()) {
                 Some(addr) => {

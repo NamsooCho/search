@@ -39,9 +39,12 @@ impl SyncQ {
 
     pub fn insert (&mut self,  base_url: &mut Url, url_list: & Vec<String>) {
         for elem in url_list.iter() {
-            let new_url = match base_url.join(&elem) {
+            let new_url = match Url::parse(&elem) {
                 Ok(u) => Some(u),
-                Err(_) => None,
+                Err(_) => match base_url.join(&elem) {
+                    Ok(u) => Some(u),
+                    Err(_) => None,
+                },
             };
 
             if new_url == None {
