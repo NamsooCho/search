@@ -24,6 +24,7 @@ use http_socket_thread::HttpSocketThread;
 use cookie::Cookie;
 use std::sync::{Arc,Mutex};
 use sync_q::SyncQ;
+use dns::Dns;
 
 #[derive(Debug, Clone)]
 struct Args {
@@ -83,7 +84,7 @@ fn main() {
 */
     let sock_cnt: u32 = match matches.opt_str("c") {
         Some(x) => x.parse().unwrap(),
-        None => 4,
+        None => 8,
     };
 
     let arg: Args = Args {
@@ -98,13 +99,15 @@ fn main() {
     let mut children = vec![];
     let cookie_ = Arc::new(Mutex::new(Cookie::new()));
     let queue_ = Arc::new(Mutex::new(SyncQ::new(&arg.seed_, q_limit)));
+    let dns_ = Arc::new(Mutex::new(Dns::new()));
     for i in 0..arg.sock_cnt_ {
         let cookie = cookie_.clone();
         let queue = queue_.clone();
+        let dns = dns_.clone();
         let arg_clone = arg.clone();
         children.push(thread::spawn(move || {
             let mut sock = HttpSocketThread::new(&arg_clone.out_dir_);
-            sock.initiate(i as i32, queue, cookie);
+            sock.initiate(i as i32, queue, cookie, dns);
         }));
     }
 

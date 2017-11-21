@@ -37,7 +37,7 @@ pub struct HttpSocketThread {
     output_: String,
     redir_history: BTreeSet<Url>,
     cookie_: Arc<Mutex<Cookie>>,
-    dns_: Dns,
+    dns_: Arc<Mutex<Dns>>,
     http_parser_: HttpParser,
     err_: String,
     out_dir_: String,
@@ -52,7 +52,7 @@ impl HttpSocketThread {
             output_: "".to_string(), 
             redir_history: BTreeSet::new(), 
             cookie_: Arc::new(Mutex::new(Cookie::new())),
-            dns_: Dns::new(),
+            dns_: Arc::new(Mutex::new(Dns::new())),
             http_parser_: HttpParser::new(),
             err_: String::new(),
             out_dir_: out_dir.clone(),
@@ -133,10 +133,12 @@ impl HttpSocketThread {
                 break;
             }
 
-            match self.dns_.get_sock_addr (&url.host_str().unwrap().to_string()) {
+            let ip;
+            let port;
+            match self.dns_.lock().unwrap().get_sock_addr (&url.host_str().unwrap().to_string()) {
                 Some(addr) => {
-                    let ip = addr.ip().octets();
-                    let port = match url.port() {
+                    ip = addr.ip().octets();
+                    port = match url.port() {
                         Some(p) => p,
                         None => match url.scheme() {
                             "https" => 443,
@@ -145,39 +147,40 @@ impl HttpSocketThread {
                         },
                     };
 
-                    let mut tcp_s: TcpStream = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
-                        Ok(s) => s,
-                        _ => {
-                            self.err_ = format!("\"{}.{}.{}.{}:{}\"",ip[0],ip[1],ip[2],ip[3],port).to_string();
-                            continue;
-                        },
-                    };
-
-                    let cook = self.cookie_.lock().unwrap().get_cookie(url);
-                    let send_data = self.make_http_header (url, cook);
-
-                    if url.scheme() == "https" {
-                        let connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap().build();
-                        let mut tcp_ssl: SslStream<TcpStream> = connector.connect(&url.host_str().unwrap(), tcp_s).unwrap();
-                        
-                        match tcp_ssl.write(send_data.as_bytes())
-                        {
-                            Ok(_) => self.recv_data(&mut tcp_ssl),
-                            Err(e) => { error! ("Tcp ssl write error {}", e)},
-                        };
-                    }
-                    else {
-                        match tcp_s.write(send_data.as_bytes())
-                        {
-                            Ok(_) => self.recv_data (&mut tcp_s),
-                            Err(e) => { error! ("Tcp write error {}", e)},
-                        };
-                    }
-
-                    self.cookie_.lock().unwrap().insert(&self.http_parser_.get_cookie(), url);
                 },
-                None => {},
+                None => {return false;},
             };
+
+            let mut tcp_s: TcpStream = match TcpStream::connect (format!("{}.{}.{}.{}:{}",ip[0],ip[1],ip[2],ip[3],port))  {
+                Ok(s) => s,
+                _ => {
+                    self.err_ = format!("\"{}.{}.{}.{}:{}\"",ip[0],ip[1],ip[2],ip[3],port).to_string();
+                    return false;
+                },
+            };
+
+            let cook = self.cookie_.lock().unwrap().get_cookie(url);
+            let send_data = self.make_http_header (url, cook);
+
+            if url.scheme() == "https" {
+                let connector = SslConnectorBuilder::new(SslMethod::tls()).unwrap().build();
+                let mut tcp_ssl: SslStream<TcpStream> = connector.connect(&url.host_str().unwrap(), tcp_s).unwrap();
+                
+                match tcp_ssl.write(send_data.as_bytes())
+                {
+                    Ok(_) => self.recv_data(&mut tcp_ssl),
+                    Err(e) => { error! ("Tcp ssl write error {}", e); return false;},
+                };
+            }
+            else {
+                match tcp_s.write(send_data.as_bytes())
+                {
+                    Ok(_) => self.recv_data (&mut tcp_s),
+                    Err(e) => { error! ("Tcp write error {}", e); return false;},
+                };
+            }
+
+            self.cookie_.lock().unwrap().insert(&self.http_parser_.get_cookie(), url);
 
             if self.http_parser_.is_redirect() && !self.http_parser_.get_location().is_empty() {
                 if let Ok(u) = Url::parse(&self.http_parser_.get_location()) {
@@ -199,17 +202,12 @@ impl HttpSocketThread {
         let mut url_opt;
         while self.continue_ {
             loop {
-                {
-                    if self.url_q.lock().unwrap().full () {
-                        self.continue_ = false;
-                        break;
-                    }
+                if self.url_q.lock().unwrap().full () {
+                    self.continue_ = false;
+                    break;
                 }
                 
-                {
-                    url_opt = self.url_q.lock().unwrap().get_next_url ();
-                }
-
+                url_opt = self.url_q.lock().unwrap().get_next_url ();
                 if url_opt == None {
                     break;
                 }
@@ -229,9 +227,7 @@ impl HttpSocketThread {
                         _ => {;},
                     }
                     html_parser.parse (self.http_parser_.get_body().to_string());
-                    {
-                        self.url_q.lock().unwrap().insert (&mut url, &mut html_parser.extract_link_url_list ());
-                    }
+                    self.url_q.lock().unwrap().insert (&mut url, &mut html_parser.extract_link_url_list ());
                 }
                 else {
                     error!("{} --> {}", url.as_str(), self.err_);
@@ -241,12 +237,13 @@ impl HttpSocketThread {
         }
     }
 
-    pub fn initiate (&mut self, idx: i32, queue: Arc<Mutex<SyncQ>>, cookie: Arc<Mutex<Cookie>>) {
+    pub fn initiate (&mut self, idx: i32, queue: Arc<Mutex<SyncQ>>, cookie: Arc<Mutex<Cookie>>, dns: Arc<Mutex<Dns>>) {
         self.continue_ = true;
-        self.redir_history = BTreeSet::new();
+//        self.redir_history = BTreeSet::new();
         self.url_q = queue;
         self.cookie_ = cookie;
         self.thread_idx = idx;
+        self.dns_ = dns;
         self.thread_function ();
     }
 }
