@@ -159,7 +159,7 @@ impl HttpSocketThread {
                 },
             };
 
-            let cook = self.cookie_.lock().unwrap().get_cookie(url);
+            let cook = self.cookie_.lock().unwrap().get_cookie(&*url);
             let send_data = self.make_http_header (url, cook);
 
             if url.scheme() == "https" {

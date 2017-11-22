@@ -1,6 +1,5 @@
 use multimap::MultiMap;
 use url::Url;
-use std::fmt;
 use time;
 
 #[derive(Debug, Clone, PartialOrd,Ord,PartialEq,Eq)]
@@ -12,33 +11,18 @@ pub struct StCookie {
     pub secure_: String,
 }
 
-#[derive(PartialEq,Eq)]
+#[derive(PartialEq,Eq,Debug,Clone)]
 pub struct Cookie {
-    pub cookie_:  MultiMap<String, StCookie>
-}
-
-impl Clone for Cookie {
-    fn clone(&self) -> Cookie { Cookie {cookie_: self.cookie_.clone()} }
-}
-
-impl fmt::Debug for Cookie {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Cookie: {:?}", self)
-    }
+    pub cookie_:  Box<MultiMap<String, StCookie>>
 }
 
 impl Cookie {
     pub fn new() -> Cookie {
-        let c = Cookie {
-            cookie_: MultiMap::new(),
-        };
-        c
+        Cookie {
+            cookie_: Box::new(MultiMap::new()),
+        }
     }
 
- /*   pub fn clear (&self) {
-        
-    }
-*/
     pub fn insert (&mut self, cookie_arr: &Vec<String>, url: &mut Box<Url>) {
         for c in cookie_arr.iter() {
             self.parse (&c, url);
@@ -56,7 +40,7 @@ impl Cookie {
         expire < now
     }
 
-    pub fn get_cookie (&mut self, url: &mut Box<Url>) -> String {
+    pub fn get_cookie (&mut self, url: &Box<Url>) -> String {
         let mut result = String::new();
 
         for (key, value) in self.cookie_.clone().iter_mut() {
