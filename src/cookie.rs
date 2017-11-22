@@ -40,7 +40,7 @@ impl Cookie {
         expire < now
     }
 
-    pub fn get_cookie (&mut self, url: &Box<Url>) -> String {
+    pub fn get_cookie (&mut self, url: &Url) -> String {
         let mut result = String::new();
 
         for (key, value) in self.cookie_.clone().iter_mut() {
